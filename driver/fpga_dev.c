@@ -403,7 +403,8 @@ int init_fpga_devices(struct bus_drvdata *d)
 
         // writeback setup
         if(d->en_wb) {
-            d->fpga_dev[i].wb_addr_virt = pci_alloc_consistent(d->pci_dev, WB_SIZE, &d->fpga_dev[i].wb_phys_addr);
+            // d->fpga_dev[i].wb_addr_virt = pci_alloc_consistent(d->pci_dev, WB_SIZE, &d->fpga_dev[i].wb_phys_addr);
+            d->fpga_dev[i].wb_addr_virt = dma_alloc_coherent(&d->pci_dev->dev, WB_SIZE, &d->fpga_dev[i].wb_phys_addr, GFP_ATOMIC);
             if(!d->fpga_dev[i].wb_addr_virt) {
                 pr_err("failed to allocate writeback memory\n");
                 goto err_wb;
@@ -454,8 +455,8 @@ err_wb:
     if(d->en_wb) {
         for (j = 0; j < i; j++) {
             set_memory_wb((uint64_t)d->fpga_dev[j].wb_addr_virt, N_WB_PAGES);
-            pci_free_consistent(d->pci_dev, WB_SIZE,
-                d->fpga_dev[j].wb_addr_virt, d->fpga_dev[j].wb_phys_addr);
+            // pci_free_consistent(d->pci_dev, WB_SIZE, d->fpga_dev[j].wb_addr_virt, d->fpga_dev[j].wb_phys_addr);
+            dma_free_coherent(&d->pci_dev->dev, WB_SIZE, d->fpga_dev[j].wb_addr_virt, d->fpga_dev[j].wb_phys_addr);
         }
     }
     vfree(d->fpga_dev[i].pid_array);
@@ -486,8 +487,8 @@ void free_fpga_devices(struct bus_drvdata *d) {
 
         if(d->en_wb) {
             set_memory_wb((uint64_t)d->fpga_dev[i].wb_addr_virt, N_WB_PAGES);
-            pci_free_consistent(d->pci_dev, WB_SIZE,
-                d->fpga_dev[i].wb_addr_virt, d->fpga_dev[i].wb_phys_addr);
+            // pci_free_consistent(d->pci_dev, WB_SIZE, d->fpga_dev[i].wb_addr_virt, d->fpga_dev[i].wb_phys_addr);
+            dma_free_coherent(&d->pci_dev->dev, WB_SIZE, d->fpga_dev[i].wb_addr_virt, d->fpga_dev[i].wb_phys_addr);
         }
 
         vfree(d->fpga_dev[i].pid_array);
