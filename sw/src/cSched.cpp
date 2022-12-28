@@ -36,18 +36,18 @@ cSched::cSched(int32_t vfid, bool priority, bool reorder)
 
 	DBG2("(DBG!) Acquiring cSched: " << vfid);
 	// Open
-	// std::string region = "/dev/fpga" + std::to_string(vfid);
-	// fd = open(region.c_str(), O_RDWR | O_SYNC); 
-	// if(fd == -1)
-	// 	throw std::runtime_error("cSched could not be obtained, vfid: " + to_string(vfid));
+	std::string region = "/dev/fpga" + std::to_string(vfid);
+	fd = open(region.c_str(), O_RDWR | O_SYNC); 
+	if(fd == -1)
+		throw std::runtime_error("cSched could not be obtained, vfid: " + to_string(vfid));
 
-	// // Cnfg
-	// uint64_t tmp[2];
+	// Cnfg
+	uint64_t tmp[2];
 
-	// if(ioctl(fd, IOCTL_READ_CNFG, &tmp)) 
-	// 	throw std::runtime_error("ioctl_read_cnfg() failed, vfid: " + to_string(vfid));
+	if(ioctl(fd, IOCTL_READ_CNFG, &tmp)) 
+		throw std::runtime_error("ioctl_read_cnfg() failed, vfid: " + to_string(vfid));
 
-	// fcnfg.parseCnfg(tmp[0]);
+	fcnfg.parseCnfg(tmp[0]);
 
     // Thread
     DBG2("cSched:  initial lock");
