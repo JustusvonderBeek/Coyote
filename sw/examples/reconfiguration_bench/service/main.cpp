@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
     boost::program_options::options_description programDescription("Options:");
     programDescription.add_options()
         ("vfid,i", boost::program_options::value<uint32_t>(), "Target vFPGA")
-        ("folder,f", boost::program_options::value<uint32_t>(), "Bitstream folder")
+        ("folder,f", boost::program_options::value<string>(), "Bitstream folder")
     ;
     
 
