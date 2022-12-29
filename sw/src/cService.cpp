@@ -13,8 +13,8 @@ cService* cService::cservice = nullptr;
  * 
  * @param vfid
  */
-cService::cService(int32_t vfid, bool priority, bool reorder) 
-    : vfid(vfid), cSched(vfid, priority, reorder) 
+cService::cService(int32_t vfid, bool priority, bool reorder, schedType type) 
+    : vfid(vfid), cSched(vfid, priority, reorder, type)
 {
     // ID
     service_id = ("coyote-daemon-vfid-" + std::to_string(vfid)).c_str();

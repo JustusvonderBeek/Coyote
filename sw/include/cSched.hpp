@@ -50,6 +50,11 @@ struct cLoad {
     uint32_t priority;
 };
 
+enum schedType {
+    DEFAULT,
+    TIME_DEPENDENT,
+};
+
 /* Schedule reordering */
 class taskCmprSched {
 private:
@@ -100,6 +105,7 @@ protected:
     /* Scheduling */
     const bool priority;
     const bool reorder;
+    const schedType type;
 
     /* Thread */
     bool run;
@@ -144,7 +150,7 @@ public:
 	 * @brief Ctor, Dtor
 	 * 
 	 */
-	cSched(int32_t vfid, bool priority = true, bool reorder = true);
+	cSched(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT);
 	~cSched();
 
 	/**

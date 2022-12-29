@@ -72,7 +72,7 @@ private:
     // Task map
     unordered_map<int, std::function<void(cProcess*, std::vector<uint64_t>)>> task_map;
 
-    cService(int32_t vfid, bool priority = true, bool reorder = true);
+    cService(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT);
 
     void daemon_init();
     void socket_init();
@@ -94,9 +94,9 @@ public:
      * @param f_rsp - Process responses
      */
 
-    static cService* getInstance(int32_t vfid, bool priority = true, bool reorder = true) {
-        if(cservice == nullptr) 
-            cservice = new cService(vfid, priority, reorder);
+    static cService* getInstance(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT) {
+        if(cservice == nullptr)
+            cservice = new cService(vfid, priority, reorder, type);
         return cservice;
     }
 
