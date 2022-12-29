@@ -109,6 +109,8 @@ cLib::~cLib() {
 void cLib::task(cMsg msg) {
     // Send request
     int32_t opcode = msg.getOid();
+    
+    std::cout << "Opcode: " << opcode << std::endl;
 
     if(write(sockfd, &opcode, sizeof(int32_t)) != sizeof(int32_t)) {
         std::cout << "ERR:  Failed to send a request" << std::endl;
