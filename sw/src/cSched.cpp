@@ -113,8 +113,13 @@ void cSched::processRequests()
             if(isReconfigurable()) {
                 if(reorder)
                     if(curr_oid !=  curr_req->oid) {
-                        //reconfigure(curr_req->getOid());
-                        recIssued = true;
+						if (bstreams.find(curr_req->oid) != bstreams.end()) {
+							auto bstream = bstreams[curr_req->oid];
+							reconfigure(bstream.first, bstream.second);
+                        	recIssued = true;
+						} else {
+							throw std::runtime_error("Requested bitstream " + to_string(curr_req->oid) + " not found!");
+						}
                     } else {
                         recIssued = false;
                     }
@@ -130,9 +135,9 @@ void cSched::processRequests()
             if(cv_cmpl.wait_for(lck_c, cmplTimeout, []{return true;})) {
                 DBG3("Completion received");
                 
-                //DBG3("Reconfig request: " << (recIssued ? "oid loaded" : "oid present") 
-                //    <<  ",vfid - " <<  getVfid() << ", cpid - " << curr_task->getCpid() 
-                //    << ", oid - " << curr_task->getOid() << ", prio - " << curr_task->getPriority());
+                DBG3("Reconfig request: " << (recIssued ? "oid loaded" : "oid present") 
+                   <<  ",vfid - " <<  getVfid() << ", cpid - " << curr_task->getCpid() 
+                   << ", oid - " << curr_task->getOid() << ", prio - " << curr_task->getPriority());
             } else {
                DBG3("Timeout, flushing ...");
             }
@@ -301,7 +306,7 @@ void cSched::addBitstream(std::string name, int32_t oid)
 		// Stream
 		ifstream f_bit(name, ios::ate | ios::binary);
 		if(!f_bit) 
-			throw std::runtime_error("Bitstream could not be opened");
+			throw std::runtime_error("Bitstream could not be opened '" + name + "'");
 
 		// Size
 		uint32_t len = f_bit.tellg();
