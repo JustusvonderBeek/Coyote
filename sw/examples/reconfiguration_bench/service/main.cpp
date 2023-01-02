@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 
     // Load addmul operator
     cservice->addTask(opIdAddMul, [] (cProcess *cproc, std::vector<uint64_t> params) { // addr, len, add, mul
-        printf("Added first bitstream\n");
+        // printf("Added first bitstream\n");
         // Prep
         cproc->setCSR(params[3], 0); // Addition
         cproc->setCSR(params[4], 1); // Multiplication
