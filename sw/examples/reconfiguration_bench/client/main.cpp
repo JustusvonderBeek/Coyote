@@ -19,6 +19,10 @@
 using namespace std;
 using namespace fpga;
 
+// Evaluation parameter
+constexpr auto const defIterations = 1;
+constexpr auto const defApplications = 4;
+
 // Runtime
 constexpr auto const defSize = 4 * 1024;
 constexpr auto const defAdd = 10;
@@ -47,13 +51,22 @@ int main(int argc, char *argv[])
     boost::program_options::notify(commandLineArgs);
 
     uint32_t size = defSize;
+    uint32_t iterations = defIterations;
+    uint32_t applications = defApplications;
     if(commandLineArgs.count("size") > 0) size = commandLineArgs["size"].as<uint32_t>();
-
+    if(commandLineArgs.count("iterations") > 0) iterations = commandLineArgs["iterations"].as<uint32_t>();
+    if(commandLineArgs.count("applications") > 0) iterations = commandLineArgs["applications"].as<uint32_t>();
+    if (applications > 4)
+        applications = 4;
+        
     // Some data ...
     void *hMem = memalign(axiDataWidth, size);
     for(int i = 0; i < size / 8; i++) {
         ((uint64_t*) hMem)[i] = rand();
     }
+
+    printf("Executing '%d' iterations\n", iterations);
+    printf("Adding '%d' applications per iteration\n", applications);
 
     // 
     // Open a UDS and sent a task request
@@ -63,17 +76,23 @@ int main(int argc, char *argv[])
 
     auto timeBegin = std::chrono::high_resolution_clock::now();
 
-    // First request is the addmul operator
-    clib.task({opIdAddMul, {(uint64_t) hMem, (uint64_t) size, (uint64_t) defAdd, (uint64_t) defMul}});
+    for (uint32_t i = 0; i < iterations; i++)
+    {
+        // First request is the addmul operator
+        clib.task({opIdAddMul, {(uint64_t) hMem, (uint64_t) size, (uint64_t) defAdd, (uint64_t) defMul}});
 
-    // Now we perform some rotation 
-    clib.task({opIdRotate, {(uint64_t) hMem, (uint64_t) size}});
+        if (applications > 1)
+            // Now we perform some rotation 
+            clib.task({opIdRotate, {(uint64_t) hMem, (uint64_t) size}});
 
-    // Some statistics on this data, first minimum and maximum
-    clib.task({opIdMinMax, {(uint64_t) hMem, (uint64_t) size}});
+        if (applications > 2)
+            // Some statistics on this data, first minimum and maximum
+            clib.task({opIdMinMax, {(uint64_t) hMem, (uint64_t) size}});
 
-    // Finally, perform the count + select operation
-    clib.task({opIdSelect, {(uint64_t) hMem, (uint64_t) size, (uint64_t) defType, (uint64_t) defPredicate}});
+        if (applications > 3)
+            // Finally, perform the count + select operation
+            clib.task({opIdSelect, {(uint64_t) hMem, (uint64_t) size, (uint64_t) defType, (uint64_t) defPredicate}});
+    }
     
     // TODO: Implement some more tasks to evaluate the scheduling performance
 
@@ -81,6 +100,8 @@ int main(int argc, char *argv[])
     using dsec = std::chrono::duration<double>;
     double dur = std::chrono::duration_cast<dsec>(timeEnd-timeBegin).count();
     printf("Duration: %.6fs\n", dur);
+    printf("Iteration(s): %d\n", iterations);
+    printf("Application(s): %d\n", applications);
 
     return (EXIT_SUCCESS);
 }
