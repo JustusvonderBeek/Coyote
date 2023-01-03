@@ -234,8 +234,10 @@ void cService::process_requests() {
                     }*/
 
                     // Check task map
-                    if(task_map.find(opcode) == task_map.end())
+                    if(task_map.find(opcode) == task_map.end()) {
                        syslog(LOG_ERR, "Opcode invalid, connfd: %d, received: %d", connfd, n);
+                        break;
+                    }
 
                     auto taskIter = task_map.find(opcode);
          
@@ -248,7 +250,7 @@ void cService::process_requests() {
                         if(n = read(connfd, recv_buf, msg_size) == msg_size) {
                             std::vector<uint64_t> msg(msg_size / sizeof(uint64_t)); 
                             memcpy(msg.data(), recv_buf, msg_size);
-
+                            
                             syslog(LOG_NOTICE, "Received new request, connfd: %d, msg size: %d",
                                 el.first, msg_size);
 
