@@ -5,7 +5,7 @@ This benchmark evaluates the different available scheduler algorithms and their 
 The benchmark can be compiled and setup in the following way.
 
     mkdir build_reconfiguration_bench_hw && cd build_reconfiguration_bench_hw
-    cmake ../hw -DFDEV_NAME=u50 -DEXAMPLE=service_reconfiguration -DCOMP_CORES=120
+    cmake ../hw -DFDEV_NAME=u50 -DEXAMPLE=reconfiguration_bench -DCOMP_CORES=120
     make -j shell && make -j compile
 
     cd .. && mkdir build_reconfiguration_bench_sw_service && cd build_reconfiguration_bench_sw_service
