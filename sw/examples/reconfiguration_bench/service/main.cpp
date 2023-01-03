@@ -89,8 +89,8 @@ int main(int argc, char *argv[])
     cservice->addTask(opIdAddMul, [] (cProcess *cproc, std::vector<uint64_t> params) { // addr, len, add, mul
         // printf("Added first bitstream\n");
         // Prep
-        cproc->setCSR(params[3], 0); // Addition
-        cproc->setCSR(params[4], 1); // Multiplication
+        cproc->setCSR(params[2], 0); // Addition
+        cproc->setCSR(params[3], 1); // Multiplication
 
         // User map
         cproc->userMap((void*)params[0], (uint32_t)params[1]);
@@ -98,18 +98,10 @@ int main(int argc, char *argv[])
         // Invoke
         cproc->invoke({CoyoteOper::TRANSFER, (void*)params[0], (void*)params[0], (uint32_t) params[1], (uint32_t) params[1]});
 
-        // // Check results
-        // bool k = true;
-        // for(int i = 0; i < size/4; i++) 
-        //     if(params[0]+i != 2 * params[3] + params[4])  {
-        //         k = false;
-        //         break;
-        //     }
-        // if (!k) 
-        //     DBG3("Addmul failed!");
-
         // User unmap
         cproc->userUnmap((void*)params[0]);
+
+        syslog(LOG_NOTICE, "Addmul finished!");
     });
     
     // Load minmax bitstream
@@ -126,8 +118,14 @@ int main(int argc, char *argv[])
         // Invoke
         cproc->invoke({CoyoteOper::READ, (void*)params[0], (uint32_t) params[1]});
 
+        // Check results
+        if((cproc->getCSR(2) != 10) || (cproc->getCSR(2) != 20))
+            syslog(LOG_NOTICE, "MinMax failed!");
+
         // User unmap
         cproc->userUnmap((void*)params[0]);
+
+        syslog(LOG_NOTICE, "MinMax finished!");
     });
 
     // Load rotate bitstream
@@ -143,6 +141,8 @@ int main(int argc, char *argv[])
 
         // User unmap
         cproc->userUnmap((void*)params[0]);
+
+        syslog(LOG_NOTICE, "Rotate finished");
     });
 
     // Load select bitstream
@@ -164,6 +164,8 @@ int main(int argc, char *argv[])
 
         // User unmap
         cproc->userUnmap((void*)params[0]);
+
+        syslog(LOG_NOTICE, "Select finished");
     });
 
     /* Run a daemon */
