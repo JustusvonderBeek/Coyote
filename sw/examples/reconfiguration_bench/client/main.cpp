@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
     uint32_t applications = defApplications;
     if(commandLineArgs.count("size") > 0) size = commandLineArgs["size"].as<uint32_t>();
     if(commandLineArgs.count("iterations") > 0) iterations = commandLineArgs["iterations"].as<uint32_t>();
-    if(commandLineArgs.count("applications") > 0) iterations = commandLineArgs["applications"].as<uint32_t>();
+    if(commandLineArgs.count("applications") > 0) applications = commandLineArgs["applications"].as<uint32_t>();
     if (applications > 4)
         applications = 4;
         
