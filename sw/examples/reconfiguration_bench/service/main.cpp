@@ -81,6 +81,9 @@ int main(int argc, char *argv[])
 
     // Load addmul bitstream
     cservice->addBitstream(location + "0/" + "part_bstream_c0_" + std::to_string(vfid) + ".bin", opIdAddMul);
+    cservice->addBitstream(location + "1/" + "part_bstream_c1_" + std::to_string(vfid) + ".bin", opIdMinMax);
+    cservice->addBitstream(location + "2/" + "part_bstream_c2_" + std::to_string(vfid) + ".bin", opIdRotate);
+    cservice->addBitstream(location + "3/" + "part_bstream_c3_" + std::to_string(vfid) + ".bin", opIdSelect);
 
     // Load addmul operator
     cservice->addTask(opIdAddMul, [] (cProcess *cproc, std::vector<uint64_t> params) { // addr, len, add, mul
@@ -95,12 +98,22 @@ int main(int argc, char *argv[])
         // Invoke
         cproc->invoke({CoyoteOper::TRANSFER, (void*)params[0], (void*)params[0], (uint32_t) params[1], (uint32_t) params[1]});
 
+        // // Check results
+        // bool k = true;
+        // for(int i = 0; i < size/4; i++) 
+        //     if(params[0]+i != 2 * params[3] + params[4])  {
+        //         k = false;
+        //         break;
+        //     }
+        // if (!k) 
+        //     DBG3("Addmul failed!");
+
         // User unmap
         cproc->userUnmap((void*)params[0]);
     });
     
     // Load minmax bitstream
-    cservice->addBitstream(location + "1/" + "part_bstream_c1_" + std::to_string(vfid) + ".bin", opIdMinMax);
+    // cservice->addBitstream(location + "1/" + "part_bstream_c1_" + std::to_string(vfid) + ".bin", opIdMinMax);
 
     // Load minmax operator
     cservice->addTask(opIdMinMax, [] (cProcess *cproc, std::vector<uint64_t> params) { // addr, len
@@ -118,7 +131,7 @@ int main(int argc, char *argv[])
     });
 
     // Load rotate bitstream
-    cservice->addBitstream(location + "2/" + "part_bstream_c2_" + std::to_string(vfid) + ".bin", opIdRotate);
+    // cservice->addBitstream(location + "2/" + "part_bstream_c2_" + std::to_string(vfid) + ".bin", opIdRotate);
 
     // Load rotete operator
     cservice->addTask(opIdRotate, [] (cProcess *cproc, std::vector<uint64_t> params) { // addr, len
@@ -133,7 +146,7 @@ int main(int argc, char *argv[])
     });
 
     // Load select bitstream
-    cservice->addBitstream(location + "3/" + "part_bstream_c3_" + std::to_string(vfid) + ".bin", opIdSelect);
+    // cservice->addBitstream(location + "3/" + "part_bstream_c3_" + std::to_string(vfid) + ".bin", opIdSelect);
 
     // Load select
     cservice->addTask(opIdSelect, [] (cProcess *cproc, std::vector<uint64_t> params) { // addr, len, type, cond
