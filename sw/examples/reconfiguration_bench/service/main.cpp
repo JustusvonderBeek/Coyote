@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
 
         // Invoke
         cproc->invoke({CoyoteOper::READ, (void*)params[0], (uint32_t) params[1]});
-        while(cproc->getCSR(1) != 0x1) { nanosleep((const struct timespec[]){{0, 100L}}, NULL); }
+        // while(cproc->getCSR(1) != 0x1) { nanosleep((const struct timespec[]){{0, 100L}}, NULL); }
 
         // User unmap
         cproc->userUnmap((void*)params[0]);
