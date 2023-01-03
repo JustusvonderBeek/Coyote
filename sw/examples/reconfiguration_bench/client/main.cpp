@@ -76,7 +76,6 @@ int main(int argc, char *argv[])
     clib.task({opIdSelect, {(uint64_t) hMem, (uint64_t) size, (uint64_t) defType, (uint64_t) defPredicate}});
     
     // TODO: Implement some more tasks to evaluate the scheduling performance
-    clib.task({opIdSelect, {(uint64_t) hMem, (uint64_t) size, (uint64_t) defType, (uint64_t) defPredicate}});
 
     auto timeEnd = std::chrono::high_resolution_clock::now();
     using dsec = std::chrono::duration<double>;
