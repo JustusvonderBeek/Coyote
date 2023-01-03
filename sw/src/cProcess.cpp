@@ -472,7 +472,18 @@ void cProcess::invoke(const csInvokeAll& cs_invoke) {
 	// Polling
 	if(cs_invoke.poll) {
 		// TODO: This loop can run indefinitely, resulting in starvation!
-		while(!checkCompleted(cs_invoke.oper)) nanosleep((const struct timespec[]){{0, 100L}}, NULL);
+		// while(!checkCompleted(cs_invoke.oper)) nanosleep((const struct timespec[]){{0, 100L}}, NULL);
+		int counter = 0;
+		int remove_counter = 0;
+		while(!checkCompleted(cs_invoke.oper)) {
+			if (counter++ % 100000 == 0) {// Overflow intended for continuous printout
+				syslog(LOG_NOTICE, "Waiting for finish!");
+				remove_counter++;
+			}
+			if (remove_counter == 5)
+				break;
+			nanosleep((const struct timespec[]){{0, 100L}}, NULL);
+		}
 	}
 }
 
