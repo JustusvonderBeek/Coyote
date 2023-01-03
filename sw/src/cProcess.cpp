@@ -473,14 +473,19 @@ void cProcess::invoke(const csInvokeAll& cs_invoke) {
 	if(cs_invoke.poll) {
 		// TODO: This loop can run indefinitely, resulting in starvation!
 		// while(!checkCompleted(cs_invoke.oper)) nanosleep((const struct timespec[]){{0, 100L}}, NULL);
-		int counter = 0;
-		int remove_counter = 0;
+		auto time_start = std::chrono::high_resolution_clock::now();
+		auto time_last = std::chrono::high_resolution_clock::now();
+		auto now = std::chrono::high_resolution_clock::now();
+		using dsec = std::chrono::duration<double>;
 		while(!checkCompleted(cs_invoke.oper)) {
-			if (counter++ % 100000 == 0) {// Overflow intended for continuous printout
-				syslog(LOG_NOTICE, "Waiting for finish!");
-				remove_counter++;
+			now = std::chrono::high_resolution_clock::now();
+    		double dur = std::chrono::duration_cast<dsec>(now - time_last).count();
+    		double total_dur = std::chrono::duration_cast<dsec>(now - time_start).count();
+			if (dur > 10.0) {
+				time_last = now;
+				syslog(LOG_NOTICE, "Waiting for task to finish!");
 			}
-			if (remove_counter == 5)
+			if (total_dur > 30.0)
 				break;
 			nanosleep((const struct timespec[]){{0, 100L}}, NULL);
 		}
