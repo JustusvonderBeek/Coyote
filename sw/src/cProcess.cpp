@@ -471,6 +471,7 @@ void cProcess::invoke(const csInvokeAll& cs_invoke) {
 
 	// Polling
 	if(cs_invoke.poll) {
+		// TODO: This loop can run indefinitely, resulting in starvation!
 		while(!checkCompleted(cs_invoke.oper)) nanosleep((const struct timespec[]){{0, 100L}}, NULL);
 	}
 }
