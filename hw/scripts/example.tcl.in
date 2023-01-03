@@ -102,6 +102,23 @@ switch $cfg(example) {
                 eval $cmd
             }
         }
+}
+
+	"reconfiguration_bench" {
+        puts "Coyote service (Partial reconfiguration). Daemon example."
+
+        add_files "$hw_dir/hdl/operators/examples/reconfiguration_bench/rtl"
+        add_files -fileset constrs_1 -norecurse "$hw_dir/hdl/operators/examples/reconfiguration_bench/constraints"
+
+        for {set i 0}  {$i < $cfg(n_config)} {incr i} {
+            for {set j 0}  {$j < $cfg(n_reg)} {incr j} {
+                set cmd "add_files -norecurse $hw_dir/hdl/operators/examples/reconfiguration_bench/rtl/reconfiguration_bench_c$i\_$j.svh  -of_objects [get_reconfig_modules design_user_wrapper_c$i\_$j]"        
+                eval $cmd
+
+                set cmd "add_files $hw_dir/hdl/operators/examples/reconfiguration_bench/rtl/c$i  -of_objects [get_reconfig_modules design_user_wrapper_c$i\_$j]"
+                eval $cmd
+            }
+        }
     }
 
     default {
