@@ -41,6 +41,8 @@ cSched::cSched(int32_t vfid, bool priority, bool reorder, schedType type)
 	if(fd == -1)
 		throw std::runtime_error("cSched could not be obtained, vfid: " + to_string(vfid));
 
+	syslog(LOG_NOTICE, "vFPGA device FD obtained in sched");
+
 	// Cnfg
 	uint64_t tmp[2];
 
@@ -112,7 +114,7 @@ void cSched::processRequests()
             // Check whether reconfiguration is needed
             if(isReconfigurable()) {
                 if(reorder)
-                    if(curr_oid !=  curr_req->oid) {
+                    if(curr_oid != curr_req->oid) {
 						if (bstreams.find(curr_req->oid) != bstreams.end()) {
 							auto bstream = bstreams[curr_req->oid];
 							reconfigure(bstream.first, bstream.second);
@@ -133,11 +135,9 @@ void cSched::processRequests()
 
             // Wait for completion or time out
             if(cv_cmpl.wait_for(lck_c, cmplTimeout, []{return true;})) {
-                DBG3("Completion received");
-                
-                DBG3("Reconfig request: " << (recIssued ? "oid loaded" : "oid present") 
-                   <<  ",vfid - " <<  getVfid() << ", cpid - " << curr_task->getCpid() 
-                   << ", oid - " << curr_task->getOid() << ", prio - " << curr_task->getPriority());
+                syslog(LOG_NOTICE, "Completion received");
+
+                syslog(LOG_NOTICE, "Reconfig request: %s, vfid: %d, cpid: %d, oid: %d, prio: %u", (recIssued ? "oid loaded" : "oid present"), getVfid(), curr_req->cpid, curr_req->oid, curr_req->priority);
             } else {
                DBG3("Timeout, flushing ...");
             }
@@ -282,7 +282,7 @@ void cSched::reconfigure(void *vaddr, uint32_t len)
 		if(ioctl(fd, IOCTL_RECONFIG_LOAD, &tmp)) // Blocking
 			throw std::runtime_error("ioctl_reconfig_load failed");
 
-		DBG2("Reconfiguration completed");
+		syslog(LOG_NOTICE, "Reconfiguration completed");
 	}
 }
 
