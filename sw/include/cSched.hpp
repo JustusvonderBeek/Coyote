@@ -33,6 +33,7 @@
 #include <thread>
 #include <limits>
 #include <queue>
+#include <syslog.h>
 
 using namespace std;
 using namespace boost::interprocess;
