@@ -84,8 +84,7 @@ void cThread::processRequests() {
                 task_queue.pop();
                 lck.unlock();
 
-                DBG3("Process task: vfid: " <<  cproc->getVfid() << ", tid: " << curr_task->getTid() 
-                    << ", oid: " << curr_task->getOid() << ", prio: " << curr_task->getPriority());
+                syslog(LOG_NOTICE, "Process task: vfid: %d , tid: %d, oid: %d, prio: %u", cproc->getVfid(), curr_task->getTid(),curr_task->getOid(), curr_task->getPriority());
 
                 // Run the task                
                 curr_task->run(cproc.get());
