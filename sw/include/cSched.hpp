@@ -61,26 +61,48 @@ class taskCmprSched {
 private:
     bool priority;
     bool reorder;
+    schedType type;
 
 public: 
-    taskCmprSched(const bool& priority, const bool& reorder) {
+    taskCmprSched(const bool& priority, const bool& reorder, const schedType type) {
         this->priority = priority;
         this->reorder = reorder;
+        this->type = type;
     }
 
     bool operator()(const std::unique_ptr<cLoad>& req1, const std::unique_ptr<cLoad>& req2) {
-        // Comparison
-        if(priority) {
-            if(req1->priority < req2->priority) return true;
-        }
-
-        if(reorder) {
-            if(req1->priority == req2->priority) {
-                if(req1->oid > req2->oid)
-                    return true;
+        
+        switch (type)
+        {
+        case DEFAULT:
+            // Comparison
+            if(priority) {
+                if(req1->priority < req2->priority) return true;
             }
-        }
 
+            if(reorder) {
+                if(req1->priority == req2->priority) {
+                    if(req1->oid > req2->oid)
+                        return true;
+                }
+            }
+            break;
+        case TIME_DEPENDENT:
+            // TODO: Implement scheduling comparison for our scheduler
+            if(priority) {
+                if(req1->priority < req2->priority) return true;
+            }
+            if(reorder) {
+                if(req1->priority == req2->priority) {
+                    if(req1->oid > req2->oid)
+                        return true;
+                }
+            }
+            return true;
+        default:
+            break;
+        }
+        
         return false;
     }
 };

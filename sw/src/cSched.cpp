@@ -30,7 +30,7 @@ cSched::cSched(int32_t vfid, bool priority, bool reorder, schedType type)
     : vfid(vfid), priority(priority), reorder(reorder), type(type),
       mlock(open_or_create, "vpga_mtx_mem_" + vfid),
       plock(open_or_create, "vpga_mtx_user_" + vfid),
-      request_queue(taskCmprSched(priority, reorder)) 
+      request_queue(taskCmprSched(priority, reorder, type)) 
 {
     unique_lock<mutex> lck_q(mtx_queue);
 
