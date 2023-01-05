@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
     // Read arguments
     boost::program_options::options_description programDescription("Options:");
     programDescription.add_options()
+        ("vfid,v", boost::program_options::value<uint32_t>(), "vFPGA ID")
         ("size,s", boost::program_options::value<uint32_t>(), "Data size")
         ("iterations,i", boost::program_options::value<uint32_t>(), "Iterations per application")
         ("applications,n", boost::program_options::value<uint32_t>(), "Number of apps to schedule per iteration")
@@ -53,9 +54,11 @@ int main(int argc, char *argv[])
     uint32_t size = defSize;
     uint32_t iterations = defIterations;
     uint32_t applications = defApplications;
+    uint32_t vfid = 0;
     if(commandLineArgs.count("size") > 0) size = commandLineArgs["size"].as<uint32_t>();
     if(commandLineArgs.count("iterations") > 0) iterations = commandLineArgs["iterations"].as<uint32_t>();
     if(commandLineArgs.count("applications") > 0) applications = commandLineArgs["applications"].as<uint32_t>();
+    if(commandLineArgs.count("vfid") > 0) vfid = commandLineArgs["vfid"].as<uint32_t>();
     if (applications > 4)
         applications = 4;
         
@@ -72,7 +75,7 @@ int main(int argc, char *argv[])
     // Open a UDS and sent a task request
     // This is the only place of interaction needed with Coyote daemon
     // 
-    cLib clib("/tmp/coyote-daemon-vfid-0");
+    cLib clib(("/tmp/coyote-daemon-vfid-" + to_string(vfid)).c_str());
 
     auto timeBegin = std::chrono::high_resolution_clock::now();
 
