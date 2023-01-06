@@ -22,6 +22,7 @@ using namespace fpga;
 
 // Runtime
 constexpr auto const defSleepSeconds = 1;
+constexpr auto const defIterations = 1;
 
 // Operators
 constexpr auto const opSleep = 1;
