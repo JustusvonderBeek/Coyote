@@ -41,7 +41,7 @@ cProcess::cProcess(int32_t vfid, pid_t pid, cSched *csched) : vfid(vfid), pid(pi
 	if(fd == -1)
 		throw std::runtime_error("cProcess could not be obtained, vfid: " + to_string(vfid));
 
-	syslog(LOG_NOTICE, "vFPGA device FD obtained in proc");
+	syslog(LOG_NOTICE, "vFPGA device %d FD obtained in proc", vfid);
 
 	// Registration
 	uint64_t tmp[2];
