@@ -16,7 +16,8 @@ namespace fpga
 		
 		if(foundScheduler == schedMap.end())
 		{
-			schedMap.insert({vfid, cService::getInstance(vfid, priority, reorder, type)});
+			returnSched = cService::getInstance(vfid, priority, reorder, type);
+			schedMap.insert({vfid, returnSched});
 		}
 		else
 		{
