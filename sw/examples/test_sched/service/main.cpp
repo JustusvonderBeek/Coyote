@@ -14,7 +14,8 @@
 #include <sys/un.h>
 #include <sstream>
 
-#include "cService.hpp"
+#include "cSchedManager.hpp"
+//#include "cService.hpp"
 #include "cProcess.hpp"
 
 using namespace std;
@@ -38,19 +39,22 @@ int main(int argc, char *argv[])
     uint32_t vfid = 0;
     if(commandLineArgs.count("vfid") > 0) vfid = commandLineArgs["vfid"].as<uint32_t>();
 
-    cService *cservice = cService::getInstance(vfid);
+    for (int currScheduler = 0; currScheduler < vfid + 1; currScheduler++)
+   {
+	    cService *cservice = cSchedManager::getScheduler(currScheduler);
 
-    auto prnt = [](cProcess *cprocess, std::vector<uint64_t> params)
-    {
-        syslog(LOG_NOTICE, "This is a task that runs for %lds, it starts now...", params[0]);
-        sleep(params[0]);
-        syslog(LOG_NOTICE, "Done, waking up");
-    };
+	    auto prnt = [](cProcess *cprocess, std::vector<uint64_t> params)
+	    {
+		syslog(LOG_NOTICE, "This is a task that runs for %lds, it starts now...", params[0]);
+		sleep(params[0]);
+		syslog(LOG_NOTICE, "Done, waking up");
+	    };
 
-    int32_t sleepTask = 1;
-    cservice->addTask(sleepTask, prnt);
+	    int32_t sleepTask = 1;
+	    cservice->addTask(sleepTask, prnt);
 
-    // Running as daemon
-    cservice->run();
+	    // Running as daemon
+	    cservice->run();
+    }
 
 }

@@ -1,4 +1,4 @@
-#include "cSchedManager.cpp"
+#include "cSchedManager.hpp"
 
 namespace fpga
 {
@@ -20,7 +20,7 @@ namespace fpga
 		}
 		else
 		{
-			returnSched = foundScheduler->second
+			returnSched = foundScheduler->second;
 		}
 
 		return returnSched;
