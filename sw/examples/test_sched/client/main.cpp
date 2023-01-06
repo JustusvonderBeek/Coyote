@@ -42,10 +42,10 @@ int main(int argc, char *argv[])
     boost::program_options::notify(commandLineArgs);
 
     uint32_t vfid = 0;
-    int32_t sleep = defSleepSeconds;
+    uint32_t sleep = defSleepSeconds;
     uint32_t iterations = defIterations;
     if(commandLineArgs.count("vfid") > 0) vfid = commandLineArgs["vfid"].as<uint32_t>();
-    if(commandLineArgs.count("sleep") > 0) sleep = commandLineArgs["sleep"].as<int32_t>();
+    if(commandLineArgs.count("sleep") > 0) sleep = commandLineArgs["sleep"].as<uint32_t>();
     if(commandLineArgs.count("iterations") > 0) iterations = commandLineArgs["iterations"].as<uint32_t>();
 
     cLib clib(("/tmp/coyote-daemon-vfid-" + to_string(vfid)).c_str());
