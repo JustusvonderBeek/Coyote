@@ -28,11 +28,11 @@ namespace fpga {
  */
 cSched::cSched(int32_t vfid, bool priority, bool reorder, schedType type) 
     : vfid(vfid), priority(priority), reorder(reorder), type(type),
-      mlock(open_or_create, "vpga_mtx_mem_" + vfid),
-      plock(open_or_create, "vpga_mtx_user_" + vfid),
+      //,mlock(open_or_create, "vpga_mtx_mem_" + vfid),
+      //plock(open_or_create, "vpga_mtx_user_" + vfid),
       request_queue(taskCmprSched(priority, reorder, type)) 
 {
-    unique_lock<mutex> lck_q(mtx_queue);
+    //unique_lock<mutex> lck_q(mtx_queue);
 
 	DBG2("(DBG!) Acquiring cSched: " << vfid);
 	// Open
@@ -57,7 +57,7 @@ cSched::cSched(int32_t vfid, bool priority, bool reorder, schedType type)
     scheduler_thread = thread(&cSched::processRequests, this);
     DBG2("cSched:  thread started, vfid: " << vfid);
 
-    cv_queue.wait(lck_q);
+    //cv_queue.wait(lck_q);
     DBG2("cSched:  ctor finished, vfid: " << vfid);
 }
 
@@ -82,7 +82,7 @@ cSched::~cSched()
 		freeMem(it.first);
 	}
 
-    named_mutex::remove("vfpga_mtx_mem_" + vfid);
+    //named_mutex::remove("vfpga_mtx_mem_" + vfid);
 
 	//close(fd);
 }
@@ -92,24 +92,24 @@ cSched::~cSched()
 // ======-------------------------------------------------------------------------------
 void cSched::processRequests() 
 {
-    unique_lock<mutex> lck_q(mtx_queue);
-    unique_lock<mutex> lck_c(mtx_cmpl);
+    //unique_lock<mutex> lck_q(mtx_queue);
+    //unique_lock<mutex> lck_c(mtx_cmpl);
     run = true;
     bool recIssued = false;
     int32_t curr_oid = -1;
     cv_queue.notify_one();
-    lck_q.unlock();
+    //lck_q.unlock();
 
     while(run || !request_queue.empty()) {
-        lck_q.lock();
+        //lck_q.lock();
         if(!request_queue.empty()) {
             // Grab next reconfig request
             auto curr_req = std::move(const_cast<std::unique_ptr<cLoad>&>(request_queue.top()));
             request_queue.pop();
-            lck_q.unlock();
+            //lck_q.unlock();
 
             // Obtain vFPGA
-            plock.lock();
+            //plock.lock();
 
             // Check whether reconfiguration is needed
             if(isReconfigurable()) {
@@ -130,22 +130,22 @@ void cSched::processRequests()
             // Notify
             curr_cpid = curr_req->cpid;
             DBG3("Request from: " << curr_cpid);
-            lck_c.unlock();
-            cv_cmpl.notify_all();
+            //lck_c.unlock();
+            //cv_cmpl.notify_all();
 
             // Wait for completion or time out
-            if(cv_cmpl.wait_for(lck_c, cmplTimeout, []{return true;})) {
-                syslog(LOG_NOTICE, "Completion received");
+            //if(cv_cmpl.wait_for(lck_c, cmplTimeout, []{return true;})) {
+              //  syslog(LOG_NOTICE, "Completion received");
 
-                syslog(LOG_NOTICE, "Reconfig request: %s, vfid: %d, cpid: %d, oid: %d, prio: %u", (recIssued ? "oid loaded" : "oid present"), getVfid(), curr_req->cpid, curr_req->oid, curr_req->priority);
-            } else {
-               DBG3("Timeout, flushing ...");
-            }
+                //syslog(LOG_NOTICE, "Reconfig request: %s, vfid: %d, cpid: %d, oid: %d, prio: %u", (recIssued ? "oid loaded" : "oid present"), getVfid(), curr_req->cpid, curr_req->oid, curr_req->priority);
+            //} else {
+              // DBG3("Timeout, flushing ...");
+            //}
 
-            plock.unlock();
+            //plock.unlock();
 
         } else {
-            lck_q.unlock();
+            //lck_q.unlock();
         }
 
         nanosleep(&PAUSE, NULL);
@@ -153,16 +153,16 @@ void cSched::processRequests()
 }
 
 void cSched::pLock(int32_t cpid, int32_t oid, uint32_t priority) {
-    unique_lock<std::mutex> lck_q(mtx_queue);
+    //unique_lock<std::mutex> lck_q(mtx_queue);
     request_queue.emplace(std::unique_ptr<cLoad>(new cLoad{cpid, oid, priority}));
-    lck_q.unlock();
-    unique_lock<std::mutex> lck_c(mtx_cmpl);
-     cv_cmpl.wait(lck_c, [=]{ return cpid == curr_cpid; });
+    //lck_q.unlock();
+    //unique_lock<std::mutex> lck_c(mtx_cmpl);
+     //cv_cmpl.wait(lck_c, [=]{ return cpid == curr_cpid; });
 }
 
 void cSched::pUnlock(int32_t cpid) {
     if(cpid == curr_cpid) {
-        cv_cmpl.notify_one();
+       // cv_cmpl.notify_one();
     }
 }
 
@@ -189,20 +189,20 @@ void* cSched::getMem(const csAlloc& cs_alloc)
 		switch (cs_alloc.alloc) {
 			case CoyoteAlloc::RCNFG_2M : // m lock
 
-                mLock();
+                //mLock();
 
 				if(ioctl(fd, IOCTL_ALLOC_HOST_PR_MEM, &tmp)) {
-                    mUnlock();
+                  //  mUnlock();
 					throw std::runtime_error("ioctl_alloc_host_pr_mem mapping failed");
                 }
 				
 				memNonAligned = mmap(NULL, (cs_alloc.n_pages + 1) * hugePageSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, mmapPr);
 				if(memNonAligned == MAP_FAILED) {
-                    mUnlock();
+                    //mUnlock();
 					throw std::runtime_error("get_pr_mem mmap failed");
                 }
 
-                mUnlock();
+                //mUnlock();
 
 				mem =  (void*)( (((reinterpret_cast<uint64_t>(memNonAligned) + hugePageSize - 1) >> hugePageShift)) << hugePageShift);
 
@@ -238,20 +238,20 @@ void cSched::freeMem(void* vaddr)
 		
 		case CoyoteAlloc::RCNFG_2M :
 
-			mLock();
+			//mLock();
 
 			if(munmap(mapped.second, (mapped.first.n_pages + 1) * hugePageSize) != 0) {
-				mUnlock();
+			//	mUnlock();
 				throw std::runtime_error("free_pr_mem munmap failed");
 			}
 				
 			
 			if(ioctl(fd, IOCTL_FREE_HOST_PR_MEM, &vaddr)) {
-				mUnlock();
+			//	mUnlock();
 				throw std::runtime_error("ioctl_free_host_pr_mem failed");
 			}
 				
-			mUnlock();
+			//mUnlock();
 
 			break;
 

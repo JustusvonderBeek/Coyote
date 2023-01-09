@@ -49,12 +49,30 @@ int main(int argc, char *argv[])
     if(commandLineArgs.count("iterations") > 0) iterations = commandLineArgs["iterations"].as<uint32_t>();
 
     cLib clib(("/tmp/coyote-daemon-vfid-" + to_string(vfid)).c_str());
-
     for (size_t i = 0; i < iterations; i++)
     {
         clib.task({opSleep, {sleep}});
     }
+
+    for (size_t i = 0; i < iterations; i++)
+    {
+        clib.task({opSleep + 1, {sleep}});
+    }
     
+    for (size_t i = 0; i < iterations; i++)
+    {
+        clib.task({opSleep + 2, {sleep}});
+    }
+
+    for (size_t i = 0; i < iterations; i++)
+    {
+        clib.task({opSleep + 3, {sleep}});
+    }
+
+    for (size_t i = 0; i < iterations; i++)
+    {
+        clib.task({opSleep + 4, {sleep}});
+    }
 
     return (EXIT_SUCCESS);
 }

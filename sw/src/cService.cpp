@@ -2,7 +2,7 @@
 
 namespace fpga {
 
-cService* cService::cservice = nullptr;
+//cService* cService::cservice = nullptr;
 
 // ======-------------------------------------------------------------------------------
 // Ctor, dtor
@@ -32,7 +32,7 @@ cService::cService(int32_t vfid, bool priority, bool reorder, schedType type)
  */
 void cService::sig_handler(int signum)
 {   
-    cservice->my_handler(signum);
+    //cservice->my_handler(signum);
 }
 
 void cService::my_handler(int signum) 
@@ -63,7 +63,9 @@ void cService::my_handler(int signum)
  * @brief Initialize the daemon service
  * 
  */
-void cService::daemon_init()
+
+
+int cService::daemon_init()
 {
     // Fork
     DBG3("Forking...");
@@ -71,23 +73,23 @@ void cService::daemon_init()
     if(pid < 0 ) 
         exit(EXIT_FAILURE);
     if(pid > 0 ) 
-        exit(EXIT_SUCCESS);
+        return 1;
 
     // Sid
     if(setsid() < 0) 
         exit(EXIT_FAILURE);
 
     // Signal handler
-    signal(SIGTERM, cService::sig_handler);
-    signal(SIGCHLD, SIG_IGN);
-    signal(SIGHUP, SIG_IGN);
+    //signal(SIGTERM, cService::sig_handler);
+    //signal(SIGCHLD, SIG_IGN);
+    //signal(SIGHUP, SIG_IGN);
 
     // Fork
     pid = fork();
     if(pid < 0 ) 
         exit(EXIT_FAILURE);
     if(pid > 0 ) 
-        exit(EXIT_SUCCESS);
+        return 1;
 
     // Permissions
     umask(0);
@@ -95,6 +97,7 @@ void cService::daemon_init()
     // Cd
     if((chdir("/")) < 0) {
         exit(EXIT_FAILURE);
+
     }
 
     // Syslog
@@ -105,6 +108,7 @@ void cService::daemon_init()
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
+	return 0;
 }
 
 /**
@@ -165,14 +169,14 @@ void cService::accept_connection()
             syslog(LOG_ERR, "Registration failed, connfd: %d, received: %d", connfd, n);
         }
 
-        mtx_cli.lock();
+        //mtx_cli.lock();
         
         if(clients.find(connfd) == clients.end()) {
             clients.insert({connfd, std::make_unique<cThread>(vfid, rpid, this)});
             syslog(LOG_NOTICE, "Connection thread created");
         }
 
-        mtx_cli.unlock();
+        //mtx_cli.unlock();
     }
 
     nanosleep((const struct timespec[]){{0, sleepIntervalDaemon}}, NULL);
@@ -209,7 +213,7 @@ void cService::process_requests() {
 
     while(run_req) {
         for (auto & el : clients) {
-            mtx_cli.lock();
+            //mtx_cli.lock();
             int connfd = el.first;
 
             if(read(connfd, recv_buf, sizeof(int32_t)) == sizeof(int32_t)) {
@@ -269,7 +273,7 @@ void cService::process_requests() {
                 }
             }
 
-            mtx_cli.unlock();
+            //mtx_cli.unlock();
         }
 
         nanosleep((const struct timespec[]){{0, sleepIntervalRequests}}, NULL);
@@ -307,7 +311,10 @@ void cService::process_responses() {
  */
 void cService::run() {
     // Init daemon
-    daemon_init();
+    if (daemon_init() == 1)
+    {
+	return;
+     }
 
     // Init socket
     socket_init();
@@ -318,10 +325,16 @@ void cService::run() {
     thread_req = std::thread(&cService::process_requests, this);
     thread_rsp = std::thread(&cService::process_responses, this);
 
+	m_bIsRunning = true;
     // Main
     while(1) {
-        accept_connection();
+      	 accept_connection();
     }
+}
+
+void cService::acceptConnection()
+{
+	accept_connection();
 }
 
 }

@@ -45,7 +45,7 @@ namespace fpga {
 class cService : public cSched {
 private: 
     // Singleton
-    static cService *cservice;
+    //static cService *cservice;
 
     // Forks
     pid_t pid;
@@ -66,7 +66,7 @@ private:
     int curr_id = { 0 };
 
     // Clients
-    mutex mtx_cli;
+    //mutex mtx_cli;
     unordered_map<int, std::unique_ptr<cThread>> clients;
 
     // Task map
@@ -74,17 +74,22 @@ private:
 
     cService(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT);
 
-    void daemon_init();
+    int daemon_init();
     void socket_init();
     void accept_connection();
 
     static void sig_handler(int signum);
-    void my_handler(int signum);
 
     void process_requests();
     void process_responses();
 
+	bool m_bIsRunning = false;
+
 public:
+    void my_handler(int signum);
+
+	bool getRunningStatus(){return m_bIsRunning;}
+void acceptConnection();
 
     /**
      * @brief Creates a service for a single vFPGA
@@ -95,9 +100,7 @@ public:
      */
 
     static cService* getInstance(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT) {
-        if(cservice == nullptr)
-            cservice = new cService(vfid, priority, reorder, type);
-        return cservice;
+        return new cService(vfid, priority, reorder, type);
     }
 
     /**
