@@ -24,3 +24,26 @@ Once the application has been build, it can be executed. First, the service has 
     cd build_test_sched_client
     sudo ./main -v 0 -s 1 -i 1
 
+
+
+#Multiple clients single service
+The test is made to run 2 clients with different vfid on a single service
+## Setup (Same as above)
+
+## Running: 
+	
+	# Running a single service that starts multiple vfid handlers	(here -v 2 is to say to start the service for 2 vfpga, with id vfid 0 and vfid 1. i.e. vfids that are < 2)
+	cd build_test_sched_service
+	sudo ./main -v 2
+
+	# Requesting user tasks to run on vFPGA 0
+	cd build_test_sched_client
+	sudo ./main -v 0 -s 1 -i 1
+
+	# Requesting user tasks to run on vFPGA 1
+	cd build_test_sched_client
+	sudo ./main -v 1 -s 1 -i 1
+
+
+
+
