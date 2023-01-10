@@ -23,6 +23,7 @@ using namespace fpga;
 // Runtime
 constexpr auto const defSleepSeconds = 1;
 constexpr auto const defIterations = 1;
+constexpr auto const defRandomSeed = 42;
 
 // Operators
 constexpr auto const opSleep = 1;
@@ -35,6 +36,7 @@ int main(int argc, char *argv[])
         ("vfid,v", boost::program_options::value<uint32_t>(), "vFPGA ID")
         ("sleep,s", boost::program_options::value<uint32_t>(), "Time in seconds to sleep")
         ("iterations,i", boost::program_options::value<uint32_t>(), "Iterations per application")
+        ("random,r", boost::program_options::value<uint32_t>(), "Random seed")
     ;
 
     boost::program_options::variables_map commandLineArgs;
@@ -44,34 +46,23 @@ int main(int argc, char *argv[])
     uint32_t vfid = 0;
     uint32_t sleep = defSleepSeconds;
     uint32_t iterations = defIterations;
+    uint32_t randomSeed = defRandomSeed;
     if(commandLineArgs.count("vfid") > 0) vfid = commandLineArgs["vfid"].as<uint32_t>();
     if(commandLineArgs.count("sleep") > 0) sleep = commandLineArgs["sleep"].as<uint32_t>();
     if(commandLineArgs.count("iterations") > 0) iterations = commandLineArgs["iterations"].as<uint32_t>();
+    if(commandLineArgs.count("random") > 0) randomSeed = commandLineArgs["random"].as<uint32_t>();
 
     cLib clib(("/tmp/coyote-daemon-vfid-" + to_string(vfid)).c_str());
-    for (size_t i = 0; i < iterations; i++)
-    {
-        clib.task({opSleep, {sleep}});
-    }
-
-    for (size_t i = 0; i < iterations; i++)
-    {
-        clib.task({opSleep + 1, {sleep}});
-    }
     
-    for (size_t i = 0; i < iterations; i++)
-    {
-        clib.task({opSleep + 2, {sleep}});
-    }
+    // Pseudo random numbers for testing (consistency)
+    srand(randomSeed);
 
+    int currOpcode = 1;
     for (size_t i = 0; i < iterations; i++)
     {
-        clib.task({opSleep + 3, {sleep}});
-    }
+        currOpcode = std::max(1, rand() % 5);
 
-    for (size_t i = 0; i < iterations; i++)
-    {
-        clib.task({opSleep + 4, {sleep}});
+        clib.task({currOpcode, {sleep}});
     }
 
     return (EXIT_SUCCESS);
