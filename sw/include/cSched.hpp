@@ -34,6 +34,7 @@
 #include <limits>
 #include <queue>
 #include <syslog.h>
+#include <chrono>
 
 using namespace std;
 using namespace boost::interprocess;
@@ -129,6 +130,7 @@ protected:
     const bool priority;
     const bool reorder;
     const schedType type;
+    bool i_toggle = false;
 
     /* Thread */
     bool run;
@@ -166,6 +168,7 @@ protected:
 
     /* (Thread) Process requests */
     void processRequests();
+    void startRequests();
 
 public:
 

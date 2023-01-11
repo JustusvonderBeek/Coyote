@@ -32,16 +32,16 @@ cSched::cSched(int32_t vfid, bool priority, bool reorder, schedType type)
       plock(open_or_create, "vpga_mtx_user_" + vfid),
       request_queue(taskCmprSched(priority, reorder, type)) 
 {
-    unique_lock<mutex> lck_q(mtx_queue);
+    // unique_lock<mutex> lck_q(mtx_queue);
 
-	DBG2("(DBG!) Acquiring cSched: " << vfid);
+	syslog(LOG_NOTICE, "(DBG!) Acquiring cSched: %d", vfid);
 	// Open
 	std::string region = "/dev/fpga" + std::to_string(vfid);
 	fd = open(region.c_str(), O_RDWR | O_SYNC); 
 	if(fd == -1)
 		throw std::runtime_error("cSched could not be obtained, vfid: " + to_string(vfid));
 
-	syslog(LOG_NOTICE, "vFPGA device FD obtained in sched");
+	syslog(LOG_NOTICE, "vFPGA device FD %d obtained in sched", vfid);
 
 	// Cnfg
 	uint64_t tmp[2];
@@ -52,13 +52,17 @@ cSched::cSched(int32_t vfid, bool priority, bool reorder, schedType type)
 	fcnfg.parseCnfg(tmp[0]);
 
     // Thread
-    DBG2("cSched:  initial lock");
+    syslog(LOG_NOTICE, "cSched:  initial lock");
 
-    scheduler_thread = thread(&cSched::processRequests, this);
-    DBG2("cSched:  thread started, vfid: " << vfid);
-
-    cv_queue.wait(lck_q);
-    DBG2("cSched:  ctor finished, vfid: " << vfid);
+	// // pid_t pid = fork();
+	// // if (pid == 0) {
+	// // 	processRequests();
+	// // }
+    // scheduler_thread = thread(&cSched::processRequests, this);
+    // syslog(LOG_NOTICE, "cSched:  thread started, vfid: %d", vfid);
+	
+    // cv_queue.wait(lck_q);
+    // DBG2("cSched:  ctor finished, vfid: " << vfid);
 }
 
 /**
@@ -90,78 +94,119 @@ cSched::~cSched()
 // ======-------------------------------------------------------------------------------
 // (Thread) Process requests
 // ======-------------------------------------------------------------------------------
+void cSched::startRequests() {
+    unique_lock<mutex> lck_q(mtx_queue);
+	
+    scheduler_thread = thread(&cSched::processRequests, this);
+    syslog(LOG_NOTICE, "cSched:  thread started, vfid: %d", vfid);
+	
+    cv_queue.wait(lck_q);
+    syslog(LOG_NOTICE, "cSched:  ctor finished, vfid: %d", vfid);
+}
+
 void cSched::processRequests() 
 {
-    unique_lock<mutex> lck_q(mtx_queue);
-    unique_lock<mutex> lck_c(mtx_cmpl);
+    unique_lock<mutex> lck_queue(mtx_queue);
+    unique_lock<mutex> lck_complete(mtx_cmpl);
     run = true;
     bool recIssued = false;
     int32_t curr_oid = -1;
-    cv_queue.notify_one();
-    lck_q.unlock();
+	syslog(LOG_NOTICE, "Starting processing requests in the scheduler...");
+    lck_queue.unlock();
+	cv_queue.notify_one();
+	syslog(LOG_NOTICE, "After first lock");
 
+	bool toggle = true;
+	int lifesign = 0;
     while(run || !request_queue.empty()) {
-        lck_q.lock();
+        if (lifesign++ % 60000 == 0) {
+			syslog(LOG_NOTICE, "Waiting for lock lck_q");
+			toggle = true;
+		}
+		lck_queue.lock();
+		if (toggle || i_toggle) {
+			syslog(LOG_NOTICE, "Request Queue Test: %d", request_queue.empty());
+			syslog(LOG_NOTICE, "Request Queue Test: %lu", request_queue.size());
+			toggle = false;
+		}
         if(!request_queue.empty()) {
             // Grab next reconfig request
             auto curr_req = std::move(const_cast<std::unique_ptr<cLoad>&>(request_queue.top()));
-            request_queue.pop();
-            lck_q.unlock();
+			request_queue.pop();
+            lck_queue.unlock();
+
+			syslog(LOG_NOTICE, "Checking reconfiguration..");
 
             // Obtain vFPGA
-            plock.lock();
+            // plock.lock();
+			// syslog(LOG_NOTICE, "After plock.lock()");
 
             // Check whether reconfiguration is needed
             if(isReconfigurable()) {
+				syslog(LOG_NOTICE, "Reconfiguration possible");
                 if(reorder)
+					syslog(LOG_NOTICE, "Reordering possible");
                     if(curr_oid != curr_req->oid) {
+						syslog(LOG_NOTICE, "Different opcode running (Req: %d)", curr_req->oid);
 						if (bstreams.find(curr_req->oid) != bstreams.end()) {
+							syslog(LOG_NOTICE, "Starting reconfiguration");
 							auto bstream = bstreams[curr_req->oid];
 							reconfigure(bstream.first, bstream.second);
                         	recIssued = true;
+							curr_oid = curr_req->oid;
 						} else {
+							syslog(LOG_NOTICE, "Requested bitstream %d not found!", curr_req->oid);
 							throw std::runtime_error("Requested bitstream " + to_string(curr_req->oid) + " not found!");
 						}
                     } else {
                         recIssued = false;
                     }
-            }
+            } else {
+				syslog(LOG_NOTICE, "Reconfiguration not possible");
+			}
 
             // Notify
             curr_cpid = curr_req->cpid;
-            DBG3("Request from: " << curr_cpid);
-            lck_c.unlock();
+            syslog(LOG_NOTICE, "Request from: %d", curr_cpid);
+            lck_complete.unlock();
             cv_cmpl.notify_all();
 
-            // Wait for completion or time out
-            if(cv_cmpl.wait_for(lck_c, cmplTimeout, []{return true;})) {
+            // Wait for completion or time out (5 seconds)
+            if(cv_cmpl.wait_for(lck_complete, cmplTimeout, []{return true;})) {
                 syslog(LOG_NOTICE, "Completion received");
 
                 syslog(LOG_NOTICE, "Reconfig request: %s, vfid: %d, cpid: %d, oid: %d, prio: %u", (recIssued ? "oid loaded" : "oid present"), getVfid(), curr_req->cpid, curr_req->oid, curr_req->priority);
             } else {
-               DBG3("Timeout, flushing ...");
+               syslog(LOG_NOTICE, "Timeout, flushing ...");
             }
 
-            plock.unlock();
+            // plock.unlock();
 
         } else {
-            lck_q.unlock();
+            lck_queue.unlock();
         }
-
         nanosleep(&PAUSE, NULL);
     }
 }
 
 void cSched::pLock(int32_t cpid, int32_t oid, uint32_t priority) {
-    unique_lock<std::mutex> lck_q(mtx_queue);
+    unique_lock<std::mutex> lck_queue(mtx_queue);
     request_queue.emplace(std::unique_ptr<cLoad>(new cLoad{cpid, oid, priority}));
-    lck_q.unlock();
-    unique_lock<std::mutex> lck_c(mtx_cmpl);
-     cv_cmpl.wait(lck_c, [=]{ return cpid == curr_cpid; });
+	// syslog(LOG_NOTICE, "Task enqueued: %lu", request_queue.size());
+    lck_queue.unlock();
+    unique_lock<std::mutex> lck_complete(mtx_cmpl, std::defer_lock);
+	syslog(LOG_NOTICE, "Waiting for task to finish");
+     auto now = std::chrono::system_clock::now();
+	 int ret = cv_cmpl.wait_until(lck_complete, now + 10000ms, [=]{ return cpid == curr_cpid; });
+	if (ret == 0)
+		syslog(LOG_NOTICE, "Timeout!");
+	else
+	 	syslog(LOG_NOTICE, "Exiting task enqueued");
 }
 
 void cSched::pUnlock(int32_t cpid) {
     if(cpid == curr_cpid) {
+		// plock.unlock();
         cv_cmpl.notify_one();
     }
 }
@@ -275,15 +320,17 @@ void cSched::freeMem(void* vaddr)
  */
 void cSched::reconfigure(void *vaddr, uint32_t len) 
 {
+	syslog(LOG_NOTICE, "Reconfiguration called");
 	if(fcnfg.en_pr) {
 		uint64_t tmp[2];
 		tmp[0] = reinterpret_cast<uint64_t>(vaddr);
 		tmp[1] = static_cast<uint64_t>(len);
+		syslog(LOG_NOTICE, "Reconfiguring...");
 		if(ioctl(fd, IOCTL_RECONFIG_LOAD, &tmp)) // Blocking
 			throw std::runtime_error("ioctl_reconfig_load failed");
 
-		syslog(LOG_NOTICE, "Reconfiguration completed");
 	}
+	syslog(LOG_NOTICE, "Reconfiguration completed");
 }
 
 // Util
@@ -326,7 +373,7 @@ void cSched::addBitstream(std::string name, int32_t oid)
 			vaddr_32[i] |= readByte(f_bit);
 		}
 
-		DBG2("Bitstream loaded, oid: " << oid);
+		syslog(LOG_NOTICE, "Bitstream loaded, oid: %d",oid);
 		f_bit.close();
 
 		bstreams.insert({oid, std::make_pair(vaddr, len)});	

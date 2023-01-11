@@ -33,7 +33,7 @@ cProcess::cProcess(int32_t vfid, pid_t pid, cSched *csched) : vfid(vfid), pid(pi
 		dlock(open_or_create, "vfpga_mtx_data_" + vfid), 
 		mlock(open_or_create, "vpga_mtx_mem_" + vfid) 
 {
-	DBG3("cProcess:  acquiring vfid " << vfid);
+	syslog(LOG_NOTICE, "cProcess:  acquiring vfid %d", vfid);
     
 	// Open
 	std::string region = "/dev/fpga" + std::to_string(vfid);
@@ -51,7 +51,7 @@ cProcess::cProcess(int32_t vfid, pid_t pid, cSched *csched) : vfid(vfid), pid(pi
 	if(ioctl(fd, IOCTL_REGISTER_PID, &tmp))
 		throw std::runtime_error("ioctl_register_pid() failed");
 
-	DBG3("cProcess:  registered pid: " << pid << ", cpid: " << tmp[1]);
+	syslog(LOG_NOTICE, "cProcess:  registered pid: %d, cpid: %lu", pid, tmp[1]);
 	cpid = tmp[1];
 
 	// Cnfg
@@ -59,20 +59,20 @@ cProcess::cProcess(int32_t vfid, pid_t pid, cSched *csched) : vfid(vfid), pid(pi
 		throw std::runtime_error("ioctl_read_cnfg() failed");
 
 	fcnfg.parseCnfg(tmp[0]);
-	DBG3("-- CONFIG -------------------------------------");
-	DBG3("-----------------------------------------------");
-	DBG3("Enabled AVX: " << fcnfg.en_avx);
-	DBG3("Enabled BPSS: " << fcnfg.en_bypass);
-	DBG3("Enabled TLBF: " << fcnfg.en_tlbf);
-	DBG3("Enabled WBACK: " << fcnfg.en_wb);
-	DBG3("Enabled STRM: " << fcnfg.en_strm);
-	DBG3("Enabled MEM: " << fcnfg.en_mem);
-	DBG3("Enabled PR: " << fcnfg.en_pr);
-	DBG3("Enabled RDMA: " << fcnfg.en_rdma);
-	DBG3("Enabled TCP: " << fcnfg.en_tcp);
-	DBG3("QSFP port: " << fcnfg.qsfp);
-	DBG3("Number of channels: " << fcnfg.n_fpga_chan);
-	DBG3("Number of vFPGAs: " << fcnfg.n_fpga_reg);
+	// syslog(LOG_NOTICE, "-- CONFIG -------------------------------------");
+	// syslog(LOG_NOTICE, "-----------------------------------------------");
+	// syslog(LOG_NOTICE, "Enabled AVX: %d", fcnfg.en_avx);
+	// syslog(LOG_NOTICE, "Enabled BPSS: %d", fcnfg.en_bypass);
+	// syslog(LOG_NOTICE, "Enabled TLBF: %d", fcnfg.en_tlbf);
+	// syslog(LOG_NOTICE, "Enabled WBACK: %d", fcnfg.en_wb);
+	// syslog(LOG_NOTICE, "Enabled STRM: %d", fcnfg.en_strm);
+	// syslog(LOG_NOTICE, "Enabled MEM: %d", fcnfg.en_mem);
+	// syslog(LOG_NOTICE, "Enabled PR: %d", fcnfg.en_pr);
+	// syslog(LOG_NOTICE, "Enabled RDMA: %d", fcnfg.en_rdma);
+	// syslog(LOG_NOTICE, "Enabled TCP: %d", fcnfg.en_tcp);
+	// syslog(LOG_NOTICE, "QSFP port: %d", fcnfg.qsfp);
+	// syslog(LOG_NOTICE, "Number of channels: %d", fcnfg.n_fpga_chan);
+	// syslog(LOG_NOTICE, "Number of vFPGAs: %d", fcnfg.n_fpga_reg);
 
 	// Mmap
 	mmapFpga();
@@ -359,9 +359,12 @@ void cProcess::freeMem(void* vaddr) {
  */
 void cProcess::pLock(int32_t oid, uint32_t priority) 
 {
+	syslog(LOG_NOTICE, "Lock called");
     if(csched != nullptr) {
+		syslog(LOG_NOTICE, "Asking scheduler...");
         csched->pLock(cpid, oid, priority); 
     } else {
+		syslog(LOG_NOTICE, "Locking device");
         plock.lock();
     }
 }
@@ -485,7 +488,7 @@ void cProcess::invoke(const csInvokeAll& cs_invoke) {
     		double total_dur = std::chrono::duration_cast<dsec>(now - time_start).count();
 			if (dur > 10.0) {
 				time_last = now;
-				syslog(LOG_NOTICE, "Waiting for task to finish!");
+				syslog(LOG_NOTICE, "Waiting for task to finish! %.0fs", total_dur);
 			}
 			if (total_dur > 30.0)
 				break;
