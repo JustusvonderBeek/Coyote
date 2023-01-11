@@ -34,7 +34,7 @@ cSched::cSched(int32_t vfid, bool priority, bool reorder, schedType type)
 {
     unique_lock<mutex> lck_q(mtx_queue);
 
-	DBG2("(DBG!) Acquiring cSched: " << vfid);
+	syslog(LOG_NOTICE, "(DBG!) Acquiring cSched: %d", vfid);
 	// Open
 	std::string region = "/dev/fpga" + std::to_string(vfid);
 	fd = open(region.c_str(), O_RDWR | O_SYNC); 
@@ -52,10 +52,10 @@ cSched::cSched(int32_t vfid, bool priority, bool reorder, schedType type)
 	fcnfg.parseCnfg(tmp[0]);
 
     // Thread
-    DBG2("cSched:  initial lock");
+    syslog(LOG_NOTICE, "cSched:  initial lock");
 
     scheduler_thread = thread(&cSched::processRequests, this);
-    DBG2("cSched:  thread started, vfid: " << vfid);
+    syslog(LOG_NOTICE, "cSched:  thread started, vfid: %d", vfid);
 
     cv_queue.wait(lck_q);
     DBG2("cSched:  ctor finished, vfid: " << vfid);
@@ -97,16 +97,29 @@ void cSched::processRequests()
     run = true;
     bool recIssued = false;
     int32_t curr_oid = -1;
+	syslog(LOG_NOTICE, "Starting processing requests in the scheduler...");
     cv_queue.notify_one();
     lck_q.unlock();
+	syslog(LOG_NOTICE, "After first lock");
 
+	bool toggle = true;
+	int lifesign = 0;
     while(run || !request_queue.empty()) {
-        lck_q.lock();
+        if (lifesign++ % 1000 == 0)
+			syslog(LOG_NOTICE, "Waiting for lock lck_q");
+		lck_q.lock();
+		if (toggle || i_toggle) {
+			syslog(LOG_NOTICE, "Request Queue Test: %d", request_queue.empty());
+			syslog(LOG_NOTICE, "Request Queue Test: %d", request_queue.size());
+			toggle = false;
+		}
         if(!request_queue.empty()) {
             // Grab next reconfig request
             auto curr_req = std::move(const_cast<std::unique_ptr<cLoad>&>(request_queue.top()));
             request_queue.pop();
             lck_q.unlock();
+
+			syslog(LOG_NOTICE, "Checking reconfiguration");
 
             // Obtain vFPGA
             plock.lock();
@@ -147,17 +160,23 @@ void cSched::processRequests()
         } else {
             lck_q.unlock();
         }
-
         nanosleep(&PAUSE, NULL);
     }
 }
 
 void cSched::pLock(int32_t cpid, int32_t oid, uint32_t priority) {
     unique_lock<std::mutex> lck_q(mtx_queue);
+	syslog(LOG_NOTICE, "Task will be enqueued");
     request_queue.emplace(std::unique_ptr<cLoad>(new cLoad{cpid, oid, priority}));
+	syslog(LOG_NOTICE, "Task enqueued: %d", request_queue.size());
     lck_q.unlock();
-    unique_lock<std::mutex> lck_c(mtx_cmpl);
-     cv_cmpl.wait(lck_c, [=]{ return cpid == curr_cpid; });
+	i_toggle = true;
+	syslog(LOG_NOTICE, "Lock q unlocked");
+    unique_lock<std::mutex> lck_c(mtx_cmpl, std::defer_lock);
+	syslog(LOG_NOTICE, "Waiting for task to finish");
+     auto now = std::chrono::system_clock::now();
+	 cv_cmpl.wait_until(lck_c, now + 2000ms, [=]{ return cpid == curr_cpid; });
+	 syslog(LOG_NOTICE, "Exiting task enqueued");
 }
 
 void cSched::pUnlock(int32_t cpid) {
