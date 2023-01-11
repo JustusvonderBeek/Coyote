@@ -114,21 +114,16 @@ void cSched::processRequests()
 	syslog(LOG_NOTICE, "Starting processing requests in the scheduler...");
     lck_queue.unlock();
 	cv_queue.notify_one();
-	syslog(LOG_NOTICE, "After first lock");
+	// syslog(LOG_NOTICE, "After first lock");
 
-	bool toggle = true;
 	int lifesign = 0;
     while(run || !request_queue.empty()) {
         if (lifesign++ % 60000 == 0) {
-			syslog(LOG_NOTICE, "Waiting for lock lck_q");
-			toggle = true;
-		}
-		lck_queue.lock();
-		if (toggle || i_toggle) {
+			// syslog(LOG_NOTICE, "Waiting for lock lck_q");
 			syslog(LOG_NOTICE, "Request Queue Test: %d", request_queue.empty());
 			syslog(LOG_NOTICE, "Request Queue Test: %lu", request_queue.size());
-			toggle = false;
 		}
+		lck_queue.lock();
         if(!request_queue.empty()) {
             // Grab next reconfig request
             auto curr_req = std::move(const_cast<std::unique_ptr<cLoad>&>(request_queue.top()));
@@ -143,13 +138,13 @@ void cSched::processRequests()
 
             // Check whether reconfiguration is needed
             if(isReconfigurable()) {
-				syslog(LOG_NOTICE, "Reconfiguration possible");
+				// syslog(LOG_NOTICE, "Reconfiguration possible");
                 if(reorder)
-					syslog(LOG_NOTICE, "Reordering possible");
+					// syslog(LOG_NOTICE, "Reordering possible");
                     if(curr_oid != curr_req->oid) {
 						syslog(LOG_NOTICE, "Different opcode running (Req: %d)", curr_req->oid);
 						if (bstreams.find(curr_req->oid) != bstreams.end()) {
-							syslog(LOG_NOTICE, "Starting reconfiguration");
+							// syslog(LOG_NOTICE, "Starting reconfiguration");
 							auto bstream = bstreams[curr_req->oid];
 							reconfigure(bstream.first, bstream.second);
                         	recIssued = true;

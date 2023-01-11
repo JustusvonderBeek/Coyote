@@ -130,7 +130,6 @@ protected:
     const bool priority;
     const bool reorder;
     const schedType type;
-    bool i_toggle = false;
 
     /* Thread */
     bool run;

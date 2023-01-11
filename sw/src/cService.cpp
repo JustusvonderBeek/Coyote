@@ -318,14 +318,11 @@ void cService::process_responses() {
  */
 void cService::run() {
 
-    printf("Bitstreams: %lu\n", bstreams.size());
-
     // Init daemon
     daemon_init();
 
+    // Starting to process request from tasks (reconfiguration)
     startRequests();
-
-    syslog(LOG_NOTICE, "Bitstreams: %lu", bstreams.size());
 
     // Init socket
     socket_init();
