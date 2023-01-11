@@ -12,13 +12,13 @@ void cThread::startThread()
 {
     // Thread
     unique_lock<mutex> lck(mtx_task);
-    DBG3("cThread:  initial lock");
+    syslog(LOG_NOTICE, "cThread:  initial lock");
 
     c_thread = thread(&cThread::processRequests, this);
-    DBG3("cThread:  thread started");
+    syslog(LOG_NOTICE, "cThread:  thread started");
 
     cv_task.wait(lck);
-    DBG3("cThread:  ctor finished");
+    syslog(LOG_NOTICE, "cThread:  ctor finished");
 }
 
 cThread::cThread(int32_t vfid, pid_t pid, cSched *csched)  
@@ -86,8 +86,12 @@ void cThread::processRequests() {
 
                 syslog(LOG_NOTICE, "Process task: vfid: %d , tid: %d, oid: %d, prio: %u", cproc->getVfid(), curr_task->getTid(),curr_task->getOid(), curr_task->getPriority());
 
-                // Run the task                
+                // Run the task     
+                cproc->pLock(curr_task->getOid(), curr_task->getPriority());           
                 curr_task->run(cproc.get());
+                cproc->pUnlock();
+
+                syslog(LOG_NOTICE, "Task %d processed", curr_task->getTid());
 
                 // Completion
                 cnt_cmpl++;

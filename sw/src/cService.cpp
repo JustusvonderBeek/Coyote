@@ -19,6 +19,7 @@ cService::cService(int32_t vfid, bool priority, bool reorder, schedType type)
     // ID
     service_id = ("coyote-daemon-vfid-" + std::to_string(vfid)).c_str();
     socket_name = ("/tmp/coyote-daemon-vfid-" + std::to_string(vfid)).c_str();
+    // syslog(LOG_NOTICE, "cService newly created?");
 }
 
 // ======-------------------------------------------------------------------------------
@@ -66,16 +67,26 @@ void cService::my_handler(int signum)
 void cService::daemon_init()
 {
     // Fork
-    DBG3("Forking...");
+    syslog(LOG_NOTICE, "Forking...");
+    // std::this_thread::sleep_for(std::chrono::seconds(1));
     pid = fork();
     if(pid < 0 ) 
         exit(EXIT_FAILURE);
-    if(pid > 0 ) 
+    if(pid > 0 ) {
         exit(EXIT_SUCCESS);
+        // while(true) {
+        //     std::this_thread::sleep_for(std::chrono::seconds(20));
+        // }
+    }
+
+    // syslog(LOG_NOTICE, "Before sid");
+    // std::this_thread::sleep_for(std::chrono::seconds(1));
 
     // Sid
-    if(setsid() < 0) 
+    if(setsid() < 0)
         exit(EXIT_FAILURE);
+
+    // syslog(LOG_NOTICE, "Before sig handler");
 
     // Signal handler
     signal(SIGTERM, cService::sig_handler);
@@ -255,7 +266,7 @@ void cService::process_requests() {
                                 el.first, msg_size);
 
                             // Schedule
-                            el.second->scheduleTask(std::unique_ptr<bTask>(new cTask(0, 0, 1, taskIter->second, msg)));
+                            el.second->scheduleTask(std::unique_ptr<bTask>(new cTask(0, opcode, 1, taskIter->second, msg)));
                             syslog(LOG_NOTICE, "Task scheduled, client %d, opcode %d", el.first, opcode);
                         } else {
                             syslog(LOG_ERR, "Request invalid, connfd: %d, received: %d", connfd, n);
@@ -306,8 +317,12 @@ void cService::process_responses() {
  * 
  */
 void cService::run() {
+
     // Init daemon
     daemon_init();
+
+    // Starting to process request from tasks (reconfiguration)
+    startRequests();
 
     // Init socket
     socket_init();

@@ -34,6 +34,7 @@
 #include <limits>
 #include <queue>
 #include <syslog.h>
+#include <chrono>
 
 using namespace std;
 using namespace boost::interprocess;
@@ -166,6 +167,7 @@ protected:
 
     /* (Thread) Process requests */
     void processRequests();
+    void startRequests();
 
 public:
 
