@@ -213,7 +213,7 @@ void cService::process_requests() {
     memset(recv_buf, 0, recvBuffSize);
     uint8_t ack_msg;
     int32_t msg_size;
-    int n;
+    int n, taskId = 0;
     run_req = true;
 
     syslog(LOG_NOTICE, "Starting thread");
@@ -266,7 +266,7 @@ void cService::process_requests() {
                                 el.first, msg_size);
 
                             // Schedule
-                            el.second->scheduleTask(std::unique_ptr<bTask>(new cTask(0, opcode, 1, taskIter->second, msg)));
+                            el.second->scheduleTask(std::unique_ptr<bTask>(new cTask(taskId++, opcode, 1, taskIter->second, msg)));
                             syslog(LOG_NOTICE, "Task scheduled, client %d, opcode %d", el.first, opcode);
                         } else {
                             syslog(LOG_ERR, "Request invalid, connfd: %d, received: %d", connfd, n);
@@ -318,11 +318,14 @@ void cService::process_responses() {
  */
 void cService::run() {
 
+    printf("Bitstreams: %lu\n", bstreams.size());
+
     // Init daemon
     daemon_init();
 
-    // Starting to process request from tasks (reconfiguration)
     startRequests();
+
+    syslog(LOG_NOTICE, "Bitstreams: %lu", bstreams.size());
 
     // Init socket
     socket_init();

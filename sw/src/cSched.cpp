@@ -120,8 +120,8 @@ void cSched::processRequests()
     while(run || !request_queue.empty()) {
         if (lifesign++ % 60000 == 0) {
 			// syslog(LOG_NOTICE, "Waiting for lock lck_q");
-			syslog(LOG_NOTICE, "Request Queue Test: %d", request_queue.empty());
-			syslog(LOG_NOTICE, "Request Queue Test: %lu", request_queue.size());
+			syslog(LOG_NOTICE, "Request Queue Empty: %d", request_queue.empty());
+			syslog(LOG_NOTICE, "Request Queue Size: %lu", request_queue.size());
 		}
 		lck_queue.lock();
         if(!request_queue.empty()) {
@@ -132,10 +132,10 @@ void cSched::processRequests()
 
 			syslog(LOG_NOTICE, "Checking reconfiguration..");
 
-			syslog(LOG_NOTICE, "Checking reconfiguration");
-
             // Obtain vFPGA
-            // plock.lock();
+            // This fails if a file lock already exists (therefore it would be smart to change the lock type to a file_lock for testing)
+			// Can be ignored in single vFPGA and scheduler testing
+			plock.lock();
 			// syslog(LOG_NOTICE, "After plock.lock()");
 
             // Check whether reconfiguration is needed
@@ -144,7 +144,7 @@ void cSched::processRequests()
                 if(reorder)
 					// syslog(LOG_NOTICE, "Reordering possible");
                     if(curr_oid != curr_req->oid) {
-						syslog(LOG_NOTICE, "Different opcode running (Req: %d)", curr_req->oid);
+						syslog(LOG_NOTICE, "Different opcode %d running (Req: %d)", curr_oid, curr_req->oid);
 						if (bstreams.find(curr_req->oid) != bstreams.end()) {
 							// syslog(LOG_NOTICE, "Starting reconfiguration");
 							auto bstream = bstreams[curr_req->oid];
@@ -153,6 +153,7 @@ void cSched::processRequests()
 							curr_oid = curr_req->oid;
 						} else {
 							syslog(LOG_NOTICE, "Requested bitstream %d not found!", curr_req->oid);
+							plock.unlock();
 							throw std::runtime_error("Requested bitstream " + to_string(curr_req->oid) + " not found!");
 						}
                     } else {
@@ -169,15 +170,15 @@ void cSched::processRequests()
             cv_cmpl.notify_all();
 
             // Wait for completion or time out (5 seconds)
-            if(cv_cmpl.wait_for(lck_complete, cmplTimeout, []{return true;})) {
-                syslog(LOG_NOTICE, "Completion received");
+            // if(cv_cmpl.wait_for(lck_complete, cmplTimeout, []{return true;})) {
+            //     syslog(LOG_NOTICE, "Completion received");
 
-                syslog(LOG_NOTICE, "Reconfig request: %s, vfid: %d, cpid: %d, oid: %d, prio: %u", (recIssued ? "oid loaded" : "oid present"), getVfid(), curr_req->cpid, curr_req->oid, curr_req->priority);
-            } else {
-               syslog(LOG_NOTICE, "Timeout, flushing ...");
-            }
+			// syslog(LOG_NOTICE, "Reconfig request: %s, vfid: %d, cpid: %d, oid: %d, prio: %u", (recIssued ? "oid loaded" : "oid present"), getVfid(), curr_req->cpid, curr_req->oid, curr_req->priority);
+            // } else {
+            //    syslog(LOG_NOTICE, "Timeout, flushing ...");
+            // }
 
-            // plock.unlock();
+            plock.unlock();
 
         } else {
             lck_queue.unlock();
@@ -186,19 +187,26 @@ void cSched::processRequests()
     }
 }
 
+// This function is not allowed to return until the fpga is reprogrammed (and the program can execute)
 void cSched::pLock(int32_t cpid, int32_t oid, uint32_t priority) {
     unique_lock<std::mutex> lck_queue(mtx_queue);
     request_queue.emplace(std::unique_ptr<cLoad>(new cLoad{cpid, oid, priority}));
 	// syslog(LOG_NOTICE, "Task enqueued: %lu", request_queue.size());
     lck_queue.unlock();
-    unique_lock<std::mutex> lck_complete(mtx_cmpl, std::defer_lock);
-	syslog(LOG_NOTICE, "Waiting for task to finish");
-     auto now = std::chrono::system_clock::now();
-	 int ret = cv_cmpl.wait_until(lck_complete, now + 10000ms, [=]{ return cpid == curr_cpid; });
-	if (ret == 0)
-		syslog(LOG_NOTICE, "Timeout!");
-	else
-	 	syslog(LOG_NOTICE, "Exiting task enqueued");
+	// Waiting for reconfiguration to finish
+    // auto now = std::chrono::system_clock::now();
+	// syslog(LOG_NOTICE, "Waiting for task to finish");
+	int ret = 1;
+    unique_lock<std::mutex> lck_complete(mtx_cmpl);
+	//  // Waiting for 
+	// //  ret = cv_cmpl.wait_until(lck_complete, now + 10000ms, [=]{ return cpid == curr_cpid; });
+	ret = cv_cmpl.wait(lck_complete, [=]{ return cpid == curr_cpid; });
+	while (ret != 1 && curr_oid != oid) {
+		ret = cv_cmpl.wait(lck_complete, [=]{ return cpid == curr_cpid; });
+	}
+	// if (ret == 0)
+	// 	syslog(LOG_NOTICE, "Timeout in enqeue!");
+	syslog(LOG_NOTICE, "Exiting task enqueued");
 }
 
 void cSched::pUnlock(int32_t cpid) {
@@ -323,9 +331,13 @@ void cSched::reconfigure(void *vaddr, uint32_t len)
 		tmp[0] = reinterpret_cast<uint64_t>(vaddr);
 		tmp[1] = static_cast<uint64_t>(len);
 		syslog(LOG_NOTICE, "Reconfiguring...");
-		if(ioctl(fd, IOCTL_RECONFIG_LOAD, &tmp)) // Blocking
+		unique_lock<mutex> lck_reconfig(reconfigLock);
+		if(ioctl(fd, IOCTL_RECONFIG_LOAD, &tmp)) { // Blocking
+			syslog(LOG_NOTICE, "Reconfiguration failed!");
+			lck_reconfig.unlock();
 			throw std::runtime_error("ioctl_reconfig_load failed");
-
+		}
+		lck_reconfig.unlock();
 	}
 	syslog(LOG_NOTICE, "Reconfiguration completed");
 }

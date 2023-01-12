@@ -359,12 +359,12 @@ void cProcess::freeMem(void* vaddr) {
  */
 void cProcess::pLock(int32_t oid, uint32_t priority) 
 {
-	syslog(LOG_NOTICE, "Lock called");
+	syslog(LOG_NOTICE, "cProc pLock called");
     if(csched != nullptr) {
-		syslog(LOG_NOTICE, "Asking scheduler...");
+		// syslog(LOG_NOTICE, "Asking scheduler...");
         csched->pLock(cpid, oid, priority); 
     } else {
-		syslog(LOG_NOTICE, "Locking device");
+		// syslog(LOG_NOTICE, "Locking device");
         plock.lock();
     }
 }

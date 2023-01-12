@@ -125,6 +125,7 @@ protected:
 	/* Locks */
     named_mutex plock; // Internal vFPGA lock
     named_mutex mlock; // Internal memory lock
+    mutex reconfigLock; // Debug locking the reconfiguration to a single thread
 
     /* Scheduling */
     const bool priority;
