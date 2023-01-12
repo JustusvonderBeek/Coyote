@@ -27,7 +27,7 @@ namespace fpga {
  * @param vfid - vFPGA id
  */
 cSched::cSched(int32_t vfid, bool priority, bool reorder, schedType type) 
-    : vfid(vfid), priority(priority), reorder(reorder), type(type),
+    : vfid(vfid), priority(priority), reorder(reorder), type(type), rng(42),
       mlock(open_or_create, "vpga_mtx_mem_" + vfid),
       plock(open_or_create, "vpga_mtx_user_" + vfid),
       request_queue(taskCmprSched(priority, reorder, type)) 
@@ -200,10 +200,10 @@ void cSched::pLock(int32_t cpid, int32_t oid, uint32_t priority) {
     unique_lock<std::mutex> lck_complete(mtx_cmpl);
 	//  // Waiting for 
 	// //  ret = cv_cmpl.wait_until(lck_complete, now + 10000ms, [=]{ return cpid == curr_cpid; });
-	ret = cv_cmpl.wait(lck_complete, [=]{ return cpid == curr_cpid; });
-	while (ret != 1 && curr_oid != oid) {
-		ret = cv_cmpl.wait(lck_complete, [=]{ return cpid == curr_cpid; });
-	}
+	cv_cmpl.wait(lck_complete, [=]{ return cpid == curr_cpid; });
+	// while (ret != 1 && curr_oid != oid) {
+	// 	ret = cv_cmpl.wait(lck_complete, [=]{ return cpid == curr_cpid; });
+	// }
 	// if (ret == 0)
 	// 	syslog(LOG_NOTICE, "Timeout in enqeue!");
 	syslog(LOG_NOTICE, "Exiting task enqueued");
@@ -331,12 +331,26 @@ void cSched::reconfigure(void *vaddr, uint32_t len)
 		tmp[0] = reinterpret_cast<uint64_t>(vaddr);
 		tmp[1] = static_cast<uint64_t>(len);
 		syslog(LOG_NOTICE, "Reconfiguring...");
+		std::uniform_int_distribution<int32_t> deviation(1,1000);
+		int pos_deviation = deviation(rng);
+		int neg_deviation = deviation(rng);
+		auto dur = std::chrono::seconds(2) + std::chrono::milliseconds(pos_deviation) - std::chrono::milliseconds(neg_deviation);
+		syslog(LOG_NOTICE, "Reconfiguration takes: %ldms", std::chrono::duration_cast<std::chrono::seconds>(dur).count());
+
 		unique_lock<mutex> lck_reconfig(reconfigLock);
-		if(ioctl(fd, IOCTL_RECONFIG_LOAD, &tmp)) { // Blocking
-			syslog(LOG_NOTICE, "Reconfiguration failed!");
-			lck_reconfig.unlock();
-			throw std::runtime_error("ioctl_reconfig_load failed");
-		}
+
+		// TODO: Instead of calling the reconfiguration method here...
+		// we take a random amount of time for reconfiguration
+		// and continue operation afterwards. This way we can "simulate"
+		// blocking the main thread while not crashing the system
+    	
+		std::this_thread::sleep_for(dur);
+		
+		// if(ioctl(fd, IOCTL_RECONFIG_LOAD, &tmp)) { // Blocking
+		// 	syslog(LOG_NOTICE, "Reconfiguration failed!");
+		// 	lck_reconfig.unlock();
+		// 	throw std::runtime_error("ioctl_reconfig_load failed");
+		// }
 		lck_reconfig.unlock();
 	}
 	syslog(LOG_NOTICE, "Reconfiguration completed");
