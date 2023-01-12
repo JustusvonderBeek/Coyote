@@ -35,6 +35,7 @@
 #include <queue>
 #include <syslog.h>
 #include <chrono>
+#include <random>
 
 using namespace std;
 using namespace boost::interprocess;
@@ -135,6 +136,7 @@ protected:
     /* Thread */
     bool run;
     thread scheduler_thread;
+    std::mt19937 rng;
 
     /* Current cpid */
     int curr_cpid = { -1 };

@@ -28,7 +28,7 @@ namespace fpga {
  * @param vfid - vFPGA id
  * @param pid - host process id
  */
-cProcess::cProcess(int32_t vfid, pid_t pid, cSched *csched) : vfid(vfid), pid(pid), csched(csched),
+cProcess::cProcess(int32_t vfid, pid_t pid, cSched *csched) : vfid(vfid), pid(pid), csched(csched), rng(42),
 		plock(open_or_create, "vpga_mtx_user_" + vfid), 
 		dlock(open_or_create, "vfpga_mtx_data_" + vfid), 
 		mlock(open_or_create, "vpga_mtx_mem_" + vfid) 

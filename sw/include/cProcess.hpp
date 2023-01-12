@@ -28,6 +28,7 @@
 #include <thread>
 #include <sys/ioctl.h>
 #include <fstream>
+#include <random>
 
 #include "ibvStructs.hpp"
 #include "cSched.hpp"
@@ -106,6 +107,7 @@ protected:
 	inline auto mUnlock() { mlock.unlock(); }
 
 public:
+	std::mt19937 rng;
 
 	/**
 	 * @brief Ctor, Dtor
