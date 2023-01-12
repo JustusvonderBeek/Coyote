@@ -51,9 +51,12 @@ cSched::cSched(int32_t vfid, bool priority, bool reorder, schedType type)
 
 	fcnfg.parseCnfg(tmp[0]);
 
-    // Thread
-    syslog(LOG_NOTICE, "cSched:  initial lock");
+	// close(fd);
 
+    // Thread
+    // syslog(LOG_NOTICE, "cSched:  initial lock");
+
+	// close(fd);
 	// // pid_t pid = fork();
 	// // if (pid == 0) {
 	// // 	processRequests();
@@ -118,11 +121,11 @@ void cSched::processRequests()
 
 	int lifesign = 0;
     while(run || !request_queue.empty()) {
-        if (lifesign++ % 60000 == 0) {
-			// syslog(LOG_NOTICE, "Waiting for lock lck_q");
-			syslog(LOG_NOTICE, "Request Queue Empty: %d", request_queue.empty());
-			syslog(LOG_NOTICE, "Request Queue Size: %lu", request_queue.size());
-		}
+        // if (lifesign++ % 60000 == 0) {
+		// 	// syslog(LOG_NOTICE, "Waiting for lock lck_q");
+		// 	syslog(LOG_NOTICE, "Request Queue Empty: %d", request_queue.empty());
+		// 	syslog(LOG_NOTICE, "Request Queue Size: %lu", request_queue.size());
+		// }
 		lck_queue.lock();
         if(!request_queue.empty()) {
             // Grab next reconfig request
@@ -135,7 +138,7 @@ void cSched::processRequests()
             // Obtain vFPGA
             // This fails if a file lock already exists (therefore it would be smart to change the lock type to a file_lock for testing)
 			// Can be ignored in single vFPGA and scheduler testing
-			plock.lock();
+			// plock.lock();
 			// syslog(LOG_NOTICE, "After plock.lock()");
 
             // Check whether reconfiguration is needed
@@ -166,19 +169,19 @@ void cSched::processRequests()
             // Notify
             curr_cpid = curr_req->cpid;
             syslog(LOG_NOTICE, "Request from: %d", curr_cpid);
-            lck_complete.unlock();
-            cv_cmpl.notify_all();
+            // lck_complete.unlock();
+            // cv_cmpl.notify_all();
 
             // Wait for completion or time out (5 seconds)
             // if(cv_cmpl.wait_for(lck_complete, cmplTimeout, []{return true;})) {
-            //     syslog(LOG_NOTICE, "Completion received");
+			// syslog(LOG_NOTICE, "Completion received");
 
-			// syslog(LOG_NOTICE, "Reconfig request: %s, vfid: %d, cpid: %d, oid: %d, prio: %u", (recIssued ? "oid loaded" : "oid present"), getVfid(), curr_req->cpid, curr_req->oid, curr_req->priority);
+			syslog(LOG_NOTICE, "Reconfig request: %s, vfid: %d, cpid: %d, oid: %d, prio: %u", (recIssued ? "oid loaded" : "oid present"), getVfid(), curr_req->cpid, curr_req->oid, curr_req->priority);
             // } else {
             //    syslog(LOG_NOTICE, "Timeout, flushing ...");
             // }
 
-            plock.unlock();
+            // plock.unlock();
 
         } else {
             lck_queue.unlock();
@@ -196,11 +199,11 @@ void cSched::pLock(int32_t cpid, int32_t oid, uint32_t priority) {
 	// Waiting for reconfiguration to finish
     // auto now = std::chrono::system_clock::now();
 	// syslog(LOG_NOTICE, "Waiting for task to finish");
-	int ret = 1;
-    unique_lock<std::mutex> lck_complete(mtx_cmpl);
-	//  // Waiting for 
-	// //  ret = cv_cmpl.wait_until(lck_complete, now + 10000ms, [=]{ return cpid == curr_cpid; });
-	cv_cmpl.wait(lck_complete, [=]{ return cpid == curr_cpid; });
+	// int ret = 1;
+    // unique_lock<std::mutex> lck_complete(mtx_cmpl);
+	// //  // Waiting for 
+	// // //  ret = cv_cmpl.wait_until(lck_complete, now + 10000ms, [=]{ return cpid == curr_cpid; });
+	// cv_cmpl.wait(lck_complete, [=]{ return cpid == curr_cpid; });
 	// while (ret != 1 && curr_oid != oid) {
 	// 	ret = cv_cmpl.wait(lck_complete, [=]{ return cpid == curr_cpid; });
 	// }
@@ -335,7 +338,7 @@ void cSched::reconfigure(void *vaddr, uint32_t len)
 		int pos_deviation = deviation(rng);
 		int neg_deviation = deviation(rng);
 		auto dur = std::chrono::seconds(2) + std::chrono::milliseconds(pos_deviation) - std::chrono::milliseconds(neg_deviation);
-		syslog(LOG_NOTICE, "Reconfiguration takes: %ldms", std::chrono::duration_cast<std::chrono::seconds>(dur).count());
+		syslog(LOG_NOTICE, "Reconfiguration takes: %ldms", std::chrono::duration_cast<std::chrono::milliseconds>(dur).count());
 
 		unique_lock<mutex> lck_reconfig(reconfigLock);
 

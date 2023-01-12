@@ -87,8 +87,11 @@ void cThread::processRequests() {
                 syslog(LOG_NOTICE, "Process task: vfid: %d , tid: %d, oid: %d, prio: %u", cproc->getVfid(), curr_task->getTid(),curr_task->getOid(), curr_task->getPriority());
 
                 // Run the task     
+                // First reprogram the vFPGA if necessary
                 cproc->pLock(curr_task->getOid(), curr_task->getPriority());           
+                // Then execute the user functionality
                 curr_task->run(cproc.get());
+                // Freeing the vFPGA
                 cproc->pUnlock();
 
                 syslog(LOG_NOTICE, "Task %d processed", curr_task->getTid());
