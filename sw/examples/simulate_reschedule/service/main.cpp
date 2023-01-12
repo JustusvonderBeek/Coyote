@@ -100,11 +100,11 @@ int main(int argc, char *argv[])
     cservice->addTask(opIdAddMul, [](cProcess *cproc, std::vector<uint64_t> params) { // addr, len, add, mul
         // printf("Added first bitstream\n");
         // Prep
-        cproc->setCSR(params[2], 0); // Addition
-        cproc->setCSR(params[3], 1); // Multiplication
+        // cproc->setCSR(params[2], 0); // Addition
+        // cproc->setCSR(params[3], 1); // Multiplication
 
         // User map
-        cproc->userMap((void*)params[0], (uint32_t)params[1]);
+        // cproc->userMap((void*)params[0], (uint32_t)params[1]);
 
         // Invoke
         // cproc->invoke({CoyoteOper::TRANSFER, (void*)params[0], (void*)params[0], (uint32_t) params[1], (uint32_t) params[1]});
@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
         // Check the result
 
         // User unmap
-        cproc->userUnmap((void*)params[0]);
+        // cproc->userUnmap((void*)params[0]);
 
         syslog(LOG_NOTICE, "Addmul finished!");
     });
@@ -126,10 +126,10 @@ int main(int argc, char *argv[])
     // Load minmax operator
     cservice->addTask(opIdMinMax, [] (cProcess *cproc, std::vector<uint64_t> params) { // addr, len
         // Prep
-        cproc->setCSR(0x1, 1); // Start kernel
+        // cproc->setCSR(0x1, 1); // Start kernel
 
         // User map
-        cproc->userMap((void*)params[0], (uint32_t)params[1]);
+        // cproc->userMap((void*)params[0], (uint32_t)params[1]);
 
         // Invoke
         // cproc->invoke({CoyoteOper::READ, (void*)params[0], (uint32_t) params[1]});
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
         //     syslog(LOG_NOTICE, "MinMax failed!");
 
         // User unmap
-        cproc->userUnmap((void*)params[0]);
+        // cproc->userUnmap((void*)params[0]);
 
         syslog(LOG_NOTICE, "MinMax finished!");
     });
@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
     // Load rotete operator
     cservice->addTask(opIdRotate, [] (cProcess *cproc, std::vector<uint64_t> params) { // addr, len
         // User map
-        cproc->userMap((void*)params[0], (uint32_t)params[1]);
+        // cproc->userMap((void*)params[0], (uint32_t)params[1]);
 
         // Invoke
         // cproc->invoke({CoyoteOper::TRANSFER, (void*)params[0], (void*)params[0], (uint32_t) params[1], (uint32_t) params[1]});
@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
         std::this_thread::sleep_for(std::chrono::milliseconds((int)(rotateDuration * 1000)) + std::chrono::milliseconds(dur));
 
         // User unmap
-        cproc->userUnmap((void*)params[0]);
+        // cproc->userUnmap((void*)params[0]);
 
         syslog(LOG_NOTICE, "Rotate finished");
     });
@@ -177,12 +177,12 @@ int main(int argc, char *argv[])
     // Load select
     cservice->addTask(opIdSelect, [] (cProcess *cproc, std::vector<uint64_t> params) { // addr, len, type, cond
         // Prep
-        cproc->setCSR(params[2], 2); // Type of comparison
-        cproc->setCSR(params[3], 3); // Predicate
-        cproc->setCSR(0x1, 0); // Start kernel
+        // cproc->setCSR(params[2], 2); // Type of comparison
+        // cproc->setCSR(params[3], 3); // Predicate
+        // cproc->setCSR(0x1, 0); // Start kernel
         
         // User map
-        cproc->userMap((void*)params[0], (uint32_t)params[1]);
+        // cproc->userMap((void*)params[0], (uint32_t)params[1]);
 
         // Invoke
         // cproc->invoke({CoyoteOper::READ, (void*)params[0], (uint32_t) params[1]});
@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
         std::this_thread::sleep_for(std::chrono::milliseconds((int)(selectDuration * 1000)) + std::chrono::milliseconds(dur));
 
         // User unmap
-        cproc->userUnmap((void*)params[0]);
+        // cproc->userUnmap((void*)params[0]);
 
         syslog(LOG_NOTICE, "Select finished");
     });
