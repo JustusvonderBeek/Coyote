@@ -122,8 +122,8 @@ protected:
 	fCnfg fcnfg;
 
 	/* Locks */
-    //named_mutex plock; // Internal vFPGA lock
-    //named_mutex mlock; // Internal memory lock
+    named_mutex plock; // Internal vFPGA lock
+    named_mutex mlock; // Internal memory lock
 
     /* Scheduling */
     const bool priority;
@@ -139,12 +139,12 @@ protected:
 
     /* Scheduler queue */
     condition_variable cv_queue;
-    //mutex mtx_queue;
+    mutex mtx_queue;
     priority_queue<std::unique_ptr<cLoad>, vector<std::unique_ptr<cLoad>>, taskCmprSched> request_queue;
     
     /* Scheduling and completion */
-    //condition_variable cv_cmpl;
-    //mutex mtx_cmpl;
+    condition_variable cv_cmpl;
+    mutex mtx_cmpl;
 
 	/* Bitstream memory */
 	std::unordered_map<void*, mappedVal> mapped_pages;
@@ -157,8 +157,8 @@ protected:
 	void reconfigure(void* vaddr, uint32_t len);
 
 	/* Internal locks */
-	//inline auto mLock() { mlock.lock(); }
-	//inline auto mUnlock() { mlock.unlock(); }
+	inline auto mLock() { mlock.lock(); }
+	inline auto mUnlock() { mlock.unlock(); }
 
 	/* Memory alloc */
 	void* getMem(const csAlloc& cs_alloc);
