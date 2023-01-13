@@ -57,7 +57,7 @@ constexpr auto const selectDuration = 1.8;
  * @brief Main
  *  
  */
-int main(int argc, char *argv[]) 
+int _main(int argc, char *argv[]) 
 {   
     /* Args */
     boost::program_options::options_description programDescription("Options:");
