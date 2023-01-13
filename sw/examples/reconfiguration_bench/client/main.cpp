@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sstream>
+#include <random>
 
 #include "cLib.hpp"
 
@@ -22,6 +23,7 @@ using namespace fpga;
 // Evaluation parameter
 constexpr auto const defIterations = 1;
 constexpr auto const defApplications = 4;
+constexpr auto const defRandom = 42;
 
 // Runtime
 constexpr auto const defSize = 4 * 1024;
@@ -45,6 +47,7 @@ int main(int argc, char *argv[])
         ("size,s", boost::program_options::value<uint32_t>(), "Data size")
         ("iterations,i", boost::program_options::value<uint32_t>(), "Iterations per application")
         ("applications,n", boost::program_options::value<uint32_t>(), "Number of apps to schedule per iteration")
+        ("random,r", boost::program_options::value<int32_t>(), "Random seed")
     ;
 
     boost::program_options::variables_map commandLineArgs;
@@ -55,10 +58,12 @@ int main(int argc, char *argv[])
     uint32_t iterations = defIterations;
     uint32_t applications = defApplications;
     uint32_t vfid = 0;
+    int32_t random = defRandom;
     if(commandLineArgs.count("size") > 0) size = commandLineArgs["size"].as<uint32_t>();
     if(commandLineArgs.count("iterations") > 0) iterations = commandLineArgs["iterations"].as<uint32_t>();
     if(commandLineArgs.count("applications") > 0) applications = commandLineArgs["applications"].as<uint32_t>();
     if(commandLineArgs.count("vfid") > 0) vfid = commandLineArgs["vfid"].as<uint32_t>();
+    if(commandLineArgs.count("random") > 0) random = commandLineArgs["random"].as<int32_t>();
     if (applications > 4)
         applications = 4;
         
@@ -67,6 +72,8 @@ int main(int argc, char *argv[])
     for(int i = 0; i < size / 8; i++) {
         ((uint64_t*) hMem)[i] = rand();
     }
+
+    std::mt19937 rng(random);
 
     printf("Executing '%d' iterations\n", iterations);
     printf("Adding '%d' applications per iteration\n", applications);
@@ -78,31 +85,38 @@ int main(int argc, char *argv[])
     cLib clib(("/tmp/coyote-daemon-vfid-" + to_string(vfid)).c_str());
 
     auto timeBegin = std::chrono::high_resolution_clock::now();
+    std::uniform_int_distribution<int32_t> possibleOpcodes(opIdAddMul,opIdSelect);
 
     for (uint32_t i = 0; i < iterations; i++)
     {
-        // First request is the addmul operator
-        clib.task({opIdAddMul, {(uint64_t) hMem, (uint64_t) size, (uint64_t) defAdd, (uint64_t) defMul}});
-
-        if (applications > 1)
-            // Now we perform some rotation 
-            clib.task({opIdRotate, {(uint64_t) hMem, (uint64_t) size}});
-
-        if (applications > 2)
-            // Some statistics on this data, first minimum and maximum
-            clib.task({opIdMinMax, {(uint64_t) hMem, (uint64_t) size}});
-
-        if (applications > 3)
-            // Finally, perform the count + select operation
-            clib.task({opIdSelect, {(uint64_t) hMem, (uint64_t) size, (uint64_t) defType, (uint64_t) defPredicate}});
+        for (uint32_t j = 0; j < applications; j++)
+        {
+            int opcode = possibleOpcodes(rng);
+            switch (opcode)
+            {
+            case opIdAddMul:
+                clib.task({opIdAddMul, {(uint64_t) hMem, (uint64_t) size, (uint64_t) defAdd, (uint64_t) defMul}});
+                break;
+            case opIdRotate:
+                clib.task({opIdRotate, {(uint64_t) hMem, (uint64_t) size}});
+                break;
+            case opIdMinMax:
+                clib.task({opIdMinMax, {(uint64_t) hMem, (uint64_t) size}});
+                break;
+            case opIdSelect:
+                clib.task({opIdSelect, {(uint64_t) hMem, (uint64_t) size, (uint64_t) defType, (uint64_t) defPredicate}});
+                break;
+            default:
+                throw std::runtime_error("Failed to generate a valid opcode! Benchmark run incorrect!");
+            }
+        }
     }
     
-    // TODO: Implement some more tasks to evaluate the scheduling performance
-
     auto timeEnd = std::chrono::high_resolution_clock::now();
     using dsec = std::chrono::duration<double>;
     double dur = std::chrono::duration_cast<dsec>(timeEnd-timeBegin).count();
-    printf("Duration: %.6fs\n", dur);
+    // With all fluctuations we are not more precise than 4 digits anyway
+    printf("Duration: %.4fs\n", dur);
     printf("Iteration(s): %d\n", iterations);
     printf("Application(s): %d\n", applications);
 
