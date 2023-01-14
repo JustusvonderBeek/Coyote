@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
     if(commandLineArgs.count("seed") > 0) seed = commandLineArgs["seed"].as<int32_t>();
 
 	for(int currScheduler = 0; currScheduler < vfid; currScheduler++)
-	    {
+	{
 	    /* Create a daemon */
 	    cSLService* cservice = cSchedManager::getScheduler(currScheduler);
 	    std::mt19937 rng(seed);
@@ -101,26 +101,26 @@ int main(int argc, char *argv[])
 
 	    // Load addmul operator
 	    cservice->addTask(opIdAddMul, [](cProcess *cproc, std::vector<uint64_t> params) { // addr, len, add, mul
-		// printf("Added first bitstream\n");
-		// Prep
-		cproc->setCSR(params[2], 0); // Addition
-		cproc->setCSR(params[3], 1); // Multiplication
+			// printf("Added first bitstream\n");
+			// Prep
+			// cproc->setCSR(params[2], 0); // Addition
+			// cproc->setCSR(params[3], 1); // Multiplication
 
-		// User map
-		// cproc->userMap((void*)params[0], (uint32_t)params[1]);
+			// User map
+			// cproc->userMap((void*)params[0], (uint32_t)params[1]);
 
-		// Invoke
-		// cproc->invoke({CoyoteOper::TRANSFER, (void*)params[0], (void*)params[0], (uint32_t) params[1], (uint32_t) params[1]});
-		
-		std::uniform_int_distribution<int> offset(1,100);
-		int dur = offset(cproc->rng);
-		std::this_thread::sleep_for(std::chrono::milliseconds((int)(addMulDuration * 1000)) + std::chrono::milliseconds(dur));
-		// Check the result
+			// Invoke
+			// cproc->invoke({CoyoteOper::TRANSFER, (void*)params[0], (void*)params[0], (uint32_t) params[1], (uint32_t) params[1]});
+			
+			std::uniform_int_distribution<int> offset(1,100);
+			int dur = offset(cproc->rng);
+			std::this_thread::sleep_for(std::chrono::milliseconds((int)(addMulDuration * 1000)) + std::chrono::milliseconds(dur));
+			// Check the result
 
-		// User unmap
-		// cproc->userUnmap((void*)params[0]);
+			// User unmap
+			// cproc->userUnmap((void*)params[0]);
 
-		syslog(LOG_NOTICE, "Addmul finished!");
+			syslog(LOG_NOTICE, "Addmul finished!");
 	    });
 	    
 	    // Load minmax bitstream
@@ -128,29 +128,29 @@ int main(int argc, char *argv[])
 
 	    // Load minmax operator
 	    cservice->addTask(opIdMinMax, [] (cProcess *cproc, std::vector<uint64_t> params) { // addr, len
-		// Prep
-		cproc->setCSR(0x1, 1); // Start kernel
+			// Prep
+			// cproc->setCSR(0x1, 1); // Start kernel
 
-		// User map
-		// cproc->userMap((void*)params[0], (uint32_t)params[1]);
+			// User map
+			// cproc->userMap((void*)params[0], (uint32_t)params[1]);
 
-		// Invoke
-		// cproc->invoke({CoyoteOper::READ, (void*)params[0], (uint32_t) params[1]});
-		std::uniform_int_distribution<int> offset(1,500);
-		int dur = offset(cproc->rng);
-		std::this_thread::sleep_for(std::chrono::milliseconds((int)(minMaxDuration * 1000)) + std::chrono::milliseconds(dur));
+			// Invoke
+			// cproc->invoke({CoyoteOper::READ, (void*)params[0], (uint32_t) params[1]});
+			std::uniform_int_distribution<int> offset(1,500);
+			int dur = offset(cproc->rng);
+			std::this_thread::sleep_for(std::chrono::milliseconds((int)(minMaxDuration * 1000)) + std::chrono::milliseconds(dur));
 
-		// Check results
-		// while(cproc->getCSR(1) != 0x1) {
-		//     nanosleep((const struct timespec[]){{0,200L}}, NULL);
-		// }
-		// if((cproc->getCSR(2) != 10) || (cproc->getCSR(2) != 20))
-		//     syslog(LOG_NOTICE, "MinMax failed!");
+			// Check results
+			// while(cproc->getCSR(1) != 0x1) {
+			//     nanosleep((const struct timespec[]){{0,200L}}, NULL);
+			// }
+			// if((cproc->getCSR(2) != 10) || (cproc->getCSR(2) != 20))
+			//     syslog(LOG_NOTICE, "MinMax failed!");
 
-		// User unmap
-		// cproc->userUnmap((void*)params[0]);
+			// User unmap
+			// cproc->userUnmap((void*)params[0]);
 
-		syslog(LOG_NOTICE, "MinMax finished!");
+			syslog(LOG_NOTICE, "MinMax finished!");
 	    });
 
 	    // Load rotate bitstream
@@ -159,19 +159,19 @@ int main(int argc, char *argv[])
 
 	    // Load rotete operator
 	    cservice->addTask(opIdRotate, [] (cProcess *cproc, std::vector<uint64_t> params) { // addr, len
-		// User map
-		// cproc->userMap((void*)params[0], (uint32_t)params[1]);
+			// User map
+			// cproc->userMap((void*)params[0], (uint32_t)params[1]);
 
-		// Invoke
-		// cproc->invoke({CoyoteOper::TRANSFER, (void*)params[0], (void*)params[0], (uint32_t) params[1], (uint32_t) params[1]});
-		std::uniform_int_distribution<int> offset(1,1000);
-		int dur = offset(cproc->rng);
-		std::this_thread::sleep_for(std::chrono::milliseconds((int)(rotateDuration * 1000)) + std::chrono::milliseconds(dur));
+			// Invoke
+			// cproc->invoke({CoyoteOper::TRANSFER, (void*)params[0], (void*)params[0], (uint32_t) params[1], (uint32_t) params[1]});
+			std::uniform_int_distribution<int> offset(1,1000);
+			int dur = offset(cproc->rng);
+			std::this_thread::sleep_for(std::chrono::milliseconds((int)(rotateDuration * 1000)) + std::chrono::milliseconds(dur));
 
-		// User unmap
-		// cproc->userUnmap((void*)params[0]);
+			// User unmap
+			// cproc->userUnmap((void*)params[0]);
 
-		syslog(LOG_NOTICE, "Rotate finished");
+			syslog(LOG_NOTICE, "Rotate finished");
 	    });
 
 	    // Load select bitstream
@@ -179,25 +179,25 @@ int main(int argc, char *argv[])
 
 	    // Load select
 	    cservice->addTask(opIdSelect, [] (cProcess *cproc, std::vector<uint64_t> params) { // addr, len, type, cond
-		// Prep
-		cproc->setCSR(params[2], 2); // Type of comparison
-		cproc->setCSR(params[3], 3); // Predicate
-		cproc->setCSR(0x1, 0); // Start kernel
-		
-		// User map
-		// cproc->userMap((void*)params[0], (uint32_t)params[1]);
+			// Prep
+			// cproc->setCSR(params[2], 2); // Type of comparison
+			// cproc->setCSR(params[3], 3); // Predicate
+			// cproc->setCSR(0x1, 0); // Start kernel
+			
+			// User map
+			// cproc->userMap((void*)params[0], (uint32_t)params[1]);
 
-		// Invoke
-		// cproc->invoke({CoyoteOper::READ, (void*)params[0], (uint32_t) params[1]});
-		// while(cproc->getCSR(1) != 0x1) { nanosleep((const struct timespec[]){{0, 100L}}, NULL); }
-		std::uniform_int_distribution<int> offset(1,800);
-		int dur = offset(cproc->rng);
-		std::this_thread::sleep_for(std::chrono::milliseconds((int)(selectDuration * 1000)) + std::chrono::milliseconds(dur));
+			// Invoke
+			// cproc->invoke({CoyoteOper::READ, (void*)params[0], (uint32_t) params[1]});
+			// while(cproc->getCSR(1) != 0x1) { nanosleep((const struct timespec[]){{0, 100L}}, NULL); }
+			std::uniform_int_distribution<int> offset(1,800);
+			int dur = offset(cproc->rng);
+			std::this_thread::sleep_for(std::chrono::milliseconds((int)(selectDuration * 1000)) + std::chrono::milliseconds(dur));
 
-		// User unmap
-		// cproc->userUnmap((void*)params[0]);
+			// User unmap
+			// cproc->userUnmap((void*)params[0]);
 
-		syslog(LOG_NOTICE, "Select finished");
+			syslog(LOG_NOTICE, "Select finished");
 	    });
 
 	    /* Run a daemon */
