@@ -79,6 +79,8 @@ int main(int argc, char *argv[])
     if(commandLineArgs.count("vfid") > 0) vfid = commandLineArgs["vfid"].as<uint32_t>();
     if(commandLineArgs.count("folder") > 0) folder = commandLineArgs["folder"].as<string>();
     if(commandLineArgs.count("seed") > 0) seed = commandLineArgs["seed"].as<int32_t>();
+	if (vfid <= 0)
+		vfid = 1;
 
 	for(int currScheduler = 0; currScheduler < vfid; currScheduler++)
 	{

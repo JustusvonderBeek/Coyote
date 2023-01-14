@@ -199,5 +199,7 @@ int _main(int argc, char *argv[])
 
     /* Run a daemon */
     cservice->run();
+
+    return 0;
 }
 
