@@ -142,7 +142,7 @@ for ((i=1 ; i<=$clients ; i++));
 do
     echo "Starting client $i"
     # Starting in background so that they do not block
-    sudo ../build_sreconfiguration_bench_sw_client/main -i $iteration -n $application &
+    sudo ../build_reconfiguration_bench_sw_client/main -i $iteration -n $application &
 done
 
 echo "$(jobs -l)"
