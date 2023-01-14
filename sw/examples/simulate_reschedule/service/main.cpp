@@ -109,9 +109,10 @@ int main(int argc, char *argv[])
         // Invoke
         // cproc->invoke({CoyoteOper::TRANSFER, (void*)params[0], (void*)params[0], (uint32_t) params[1], (uint32_t) params[1]});
         
-        std::uniform_int_distribution<int> offset(1,100);
-        int dur = offset(cproc->rng);
-        std::this_thread::sleep_for(std::chrono::milliseconds((int)(addMulDuration * 1000)) + std::chrono::milliseconds(dur));
+        // std::uniform_int_distribution<int> offset(1,100);
+        // int dur = offset(cproc->rng);
+        // std::this_thread::sleep_for(std::chrono::milliseconds((int)(addMulDuration * 1000)) + std::chrono::milliseconds(dur));
+        std::this_thread::sleep_for(std::chrono::milliseconds((int)(addMulDuration * 1000)));
         // Check the result
 
         // User unmap
@@ -133,9 +134,11 @@ int main(int argc, char *argv[])
 
         // Invoke
         // cproc->invoke({CoyoteOper::READ, (void*)params[0], (uint32_t) params[1]});
-        std::uniform_int_distribution<int> offset(1,500);
-        int dur = offset(cproc->rng);
-        std::this_thread::sleep_for(std::chrono::milliseconds((int)(minMaxDuration * 1000)) + std::chrono::milliseconds(dur));
+        
+        // std::uniform_int_distribution<int> offset(1,500);
+        // int dur = offset(cproc->rng);
+        // std::this_thread::sleep_for(std::chrono::milliseconds((int)(minMaxDuration * 1000)) + std::chrono::milliseconds(dur));
+        std::this_thread::sleep_for(std::chrono::milliseconds((int)(minMaxDuration * 1000)));
 
         // Check results
         // while(cproc->getCSR(1) != 0x1) {
@@ -161,9 +164,11 @@ int main(int argc, char *argv[])
 
         // Invoke
         // cproc->invoke({CoyoteOper::TRANSFER, (void*)params[0], (void*)params[0], (uint32_t) params[1], (uint32_t) params[1]});
-        std::uniform_int_distribution<int> offset(1,1000);
-        int dur = offset(cproc->rng);
-        std::this_thread::sleep_for(std::chrono::milliseconds((int)(rotateDuration * 1000)) + std::chrono::milliseconds(dur));
+        
+        // std::uniform_int_distribution<int> offset(1,1000);
+        // int dur = offset(cproc->rng);
+        // std::this_thread::sleep_for(std::chrono::milliseconds((int)(rotateDuration * 1000)) + std::chrono::milliseconds(dur));
+        std::this_thread::sleep_for(std::chrono::milliseconds((int)(rotateDuration * 1000)));
 
         // User unmap
         // cproc->userUnmap((void*)params[0]);
@@ -187,9 +192,11 @@ int main(int argc, char *argv[])
         // Invoke
         // cproc->invoke({CoyoteOper::READ, (void*)params[0], (uint32_t) params[1]});
         // while(cproc->getCSR(1) != 0x1) { nanosleep((const struct timespec[]){{0, 100L}}, NULL); }
-        std::uniform_int_distribution<int> offset(1,800);
-        int dur = offset(cproc->rng);
-        std::this_thread::sleep_for(std::chrono::milliseconds((int)(selectDuration * 1000)) + std::chrono::milliseconds(dur));
+        
+        // std::uniform_int_distribution<int> offset(1,800);
+        // int dur = offset(cproc->rng);
+        // std::this_thread::sleep_for(std::chrono::milliseconds((int)(selectDuration * 1000)) + std::chrono::milliseconds(dur));
+        std::this_thread::sleep_for(std::chrono::milliseconds((int)(selectDuration * 1000)));
 
         // User unmap
         // cproc->userUnmap((void*)params[0]);
