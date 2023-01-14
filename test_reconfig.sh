@@ -24,19 +24,48 @@ print_yellow() {
     print_color "$1" "$Yellow"
 }
 
+print_green() {
+    print_color "$1" "$Green"
+}
+
 print_dash() {
     print_yellow "----------------------------------------------"
     print_yellow "$1"
     print_yellow "----------------------------------------------"
 }
 
+from_nano_to_readable() {
+    (( $# )) || { printf '%s\n' 'provide atleast one argument' >&2 ; }
+    input="$1"
+    withNano="$(( $input % 1000000000 ))"
+    withoutNano="$(date -d@"$(( $input / 1000000000 ))" +"%s")"
+    echo "${withoutNano}.${withNano}s"
+}
+
 print_usage() {
-    echo -e "$0 [-i <iteration>] [-a <applications>] [-v <vFPGAs>] [-c <clients>] [-h]\n"
+    echo -e "$0 [-i <iteration>] [-a <applications>] [-v <vFPGAs>] [-c <clients>] [-k] [-e] [-h]\n"
     echo -e "-i <iterations>:\tThe number of iterations per client."
     echo -e "-a <applications>:\tThe number of applications per client per iteration."
     echo -e "-v <vFPGAs>:\t\tThe vFPGAs that the schedule manager should manage."
     echo -e "-c <clients>:\t\tThe number of clients to start in parallel."
+    echo -e "-k :\t\tIf set running services are killed."
+    echo -e "-e :\t\tIf set the service is ended after execution."
     exit 1
+}
+
+check_running() {
+  print_yellow "Checking if any service is currently running..."
+
+  process=$(pgrep -fl "$1")
+    # echo "Out: $process"
+    if [[ -z $process ]]; then
+        return
+    fi
+    # Killing the running process(es)
+    sudo pkill "$1"
+
+    print_green "All services killed"
+    return
 }
 
 # Default variables
@@ -44,6 +73,8 @@ iteration=1
 application=4
 vfpga=0
 clients=1
+kill_running=0
+end=0
 
 # Parsing the command line
 while [[ $# -gt 0 ]]; do
@@ -69,6 +100,14 @@ while [[ $# -gt 0 ]]; do
       shift
       shift
       ;;
+    -k|--kill)
+      kill_running=1
+      shift #Only shift past argument
+      ;;
+    -e|--end)
+      end=1
+      shift #Only shift past argument
+      ;;
     -h|--help)
       print_usage
       ;;
@@ -85,12 +124,19 @@ done
 
 print_dash "Starting test"
 
+if [[ $kill_running -eq 1 ]]; then
+  check_running "main"
+fi
+
 # Expecting the file to be in the sw_service folder!
 
 cd build_reconfiguration_bench_sw_service
 
 # Starting the service
 sudo ./main -i $vfpga
+
+# Start taking time
+STARTTIME=$(date +%s%N)
 
 # Starting the client(s)
 for ((i=1 ; i<=$clients ; i++));
@@ -104,5 +150,14 @@ echo "$(jobs -l)"
 
 # Waiting for all clients to finish
 wait $(jobs -p)
+
+ENDTIME=$(date +%s%N)
+
+duration=$(from_nano_to_readable $((ENDTIME-STARTTIME)))
+print_green "Execution time for all $clients clients: ${duration}"
+
+if [[ $end -eq 1 ]]; then
+  check_running "main"
+fi
 
 print_dash "Test finished"
