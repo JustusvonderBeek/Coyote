@@ -257,7 +257,9 @@ constexpr auto const mmapPr = 0x400 << pageShift;
 static constexpr struct timespec PAUSE {.tv_sec = 0, .tv_nsec = 1000};
 static constexpr struct timespec MSPAUSE {.tv_sec = 0, .tv_nsec = 1000000};
 constexpr auto const cmplTimeout = 5000ms;
+constexpr auto const schedulingTimeout = 1200; // In milliseconds
 constexpr auto const maxCqueueSize = 512;
+
 
 /* AXI */
 constexpr auto const axiDataWidth = 64;

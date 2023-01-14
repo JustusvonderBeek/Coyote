@@ -334,10 +334,11 @@ void cSched::reconfigure(void *vaddr, uint32_t len)
 		tmp[0] = reinterpret_cast<uint64_t>(vaddr);
 		tmp[1] = static_cast<uint64_t>(len);
 		syslog(LOG_NOTICE, "Reconfiguring...");
-		std::uniform_int_distribution<int32_t> deviation(1,1000);
-		int pos_deviation = deviation(rng);
-		int neg_deviation = deviation(rng);
-		auto dur = std::chrono::seconds(2) + std::chrono::milliseconds(pos_deviation) - std::chrono::milliseconds(neg_deviation);
+		// std::uniform_int_distribution<int32_t> deviation(1,1000);
+		// int pos_deviation = deviation(rng);
+		// int neg_deviation = deviation(rng);
+		// auto dur = std::chrono::seconds(2) + std::chrono::milliseconds(pos_deviation) - std::chrono::milliseconds(neg_deviation);
+		auto dur = std::chrono::milliseconds(schedulingTimeout);
 		syslog(LOG_NOTICE, "Reconfiguration takes: %ldms", std::chrono::duration_cast<std::chrono::milliseconds>(dur).count());
 
 		unique_lock<mutex> lck_reconfig(reconfigLock);
