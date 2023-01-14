@@ -136,7 +136,7 @@ for ((i=0 ; i<$vfpga ; i++));
 do
     echo "Starting service on vFPGA$i"
     # Starting the service in background
-    sudo ./main -i $vfpga  
+    sudo ./main -i $i
 done
 
 
