@@ -1,3 +1,5 @@
+#pragma once
+
 #include <dirent.h>
 #include <iterator>
 #include <cstdlib>
@@ -30,7 +32,8 @@
 #include <any>
 
 #include "cSched.hpp"
-#include "cThread.hpp"
+#include "cSLThread.hpp"
+#include "cSchedManager.hpp"
 
 using namespace std;
 

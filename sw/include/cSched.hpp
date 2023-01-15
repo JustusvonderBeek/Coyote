@@ -37,6 +37,8 @@
 #include <chrono>
 #include <random>
 
+#include "cSchedManager.hpp"
+
 using namespace std;
 using namespace boost::interprocess;
 

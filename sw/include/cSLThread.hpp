@@ -1,7 +1,5 @@
 #pragma once
 
-#include "cDefs.hpp"
-
 #include <iostream> 
 #include <algorithm>
 #include <vector>
@@ -12,8 +10,10 @@
 #include <limits>
 #include <unordered_map>
 
+#include "cDefs.hpp"
 #include "cProcess.hpp"
 #include "cTask.hpp"
+#include "cSchedManager.hpp"
 
 using namespace std;
 
