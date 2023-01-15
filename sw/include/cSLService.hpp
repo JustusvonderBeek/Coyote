@@ -39,6 +39,9 @@ using namespace std;
 
 namespace fpga {
 
+class cSched;
+class cSchedManager;
+
 /**
  * @brief Coyote service
  * 

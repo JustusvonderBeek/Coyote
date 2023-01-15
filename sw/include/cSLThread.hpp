@@ -15,10 +15,14 @@
 #include "cProcess.hpp"
 #include "cTask.hpp"
 #include "cSchedManager.hpp"
+#include "cSched.hpp"
 
 using namespace std;
 
 namespace fpga {
+
+class cSched;
+class cSchedManager;
 
 /**
  * @brief Coyote thread
