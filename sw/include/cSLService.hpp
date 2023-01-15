@@ -39,8 +39,6 @@ using namespace std;
 
 namespace fpga {
 
-class cSched;
-class cSchedManager;
 
 /**
  * @brief Coyote service
@@ -48,6 +46,8 @@ class cSchedManager;
  * Coyote daemon, provides background scheduling service.
  * 
  */
+class cSLThread;
+class cSchedManager;
 class cSLService : public cSched {
 private: 
     // Singleton
@@ -80,7 +80,7 @@ private:
     // Task map
     unordered_map<int, std::function<void(cProcess*, std::vector<uint64_t>)>> task_map;
 
-    cSLService(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT, cSchedManager mgm);
+    cSLService(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT, cSchedManager *mgm = nullptr);
 
     void daemon_init();
     void socket_init();
@@ -103,7 +103,7 @@ public:
      * @param f_rsp - Process responses
      */
 
-    static cSLService* getInstance(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT, cSchedManager mgm) {
+    static cSLService* getInstance(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT, cSchedManager *mgm = nullptr) {
         return new cSLService(vfid, priority, reorder, type, mgm);
     }
 

@@ -12,7 +12,7 @@ void cSLThread::startThread()
     unique_lock<mutex> lck(mtx_task);
     syslog(LOG_NOTICE, "cThread:  initial lock");
 
-    c_thread = thread(&cThread::processRequests, this);
+    c_thread = thread(&cSLThread::processRequests, this);
     syslog(LOG_NOTICE, "cThread:  thread started");
 
     cv_task.wait(lck);
@@ -137,7 +137,7 @@ void cSLThread::scheduleTask(std::unique_ptr<bTask> ctask) {
         throw std::runtime_error("Initialization incorrect! Missing scheduling manager");
     }
     // Checking in the scheduling manager where to place the task (what FPGA)
-    schedulingManager->scheduleTask(ctask, this);
+    schedulingManager->scheduleTask(std::move(ctask), this);
 }
 
 }

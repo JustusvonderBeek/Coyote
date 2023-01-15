@@ -39,6 +39,7 @@ using namespace std;
 namespace fpga
 {
 	class cSLService;
+	class cSLThread;
 	class cSchedManager
 	{
 		private:

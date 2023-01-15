@@ -37,7 +37,6 @@
 #include <chrono>
 #include <random>
 
-#include "cSchedManager.hpp"
 
 using namespace std;
 using namespace boost::interprocess;
@@ -147,7 +146,6 @@ protected:
     condition_variable cv_queue;
     mutex mtx_queue;
     priority_queue<std::unique_ptr<cLoad>, vector<std::unique_ptr<cLoad>>, taskCmprSched> request_queue;
-    cSchedManager *schedulingManager;
     
     /* Scheduling and completion */
     condition_variable cv_cmpl;
@@ -184,7 +182,7 @@ public:
 	 * @brief Ctor, Dtor
 	 * 
 	 */
-	cSched(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT, cSchedManager *mgm = nullptr);
+	cSched(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT);
 	~cSched();
 
 	/**

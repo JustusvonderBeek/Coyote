@@ -39,7 +39,6 @@ private:
     bool run = { false };
 
     /* cProcess */
-    std::shared_ptr<cProcess> cproc;
     bool cproc_own = { false }; 
 
     /* cSched */
@@ -60,6 +59,8 @@ private:
     void processRequests();
 
 public:
+
+    std::shared_ptr<cProcess> cproc;
 
     /**
 	 * @brief Ctor, Dtor

@@ -13,7 +13,7 @@ namespace fpga {
  * 
  * @param vfid
  */
-cSLService::cSLService(int32_t vfid, bool priority, bool reorder, schedType type, cSchedManager mgm) 
+cSLService::cSLService(int32_t vfid, bool priority, bool reorder, schedType type, cSchedManager *mgm) 
     : vfid(vfid), schedulingManager(mgm), cSched(vfid, priority, reorder, type)
 {
     // ID

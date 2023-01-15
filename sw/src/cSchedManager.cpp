@@ -49,20 +49,20 @@ namespace fpga
 	void cSchedManager::scheduleTask(std::unique_ptr<bTask> ctask, cSLThread *thread) {
 		
 		// Updating the map
-		auto pair = std::make_pair(thread->cproc->curr_oid, thread);
-		vfidToOpcodeRunningMap.insert_or_assign({thread->cproc->vfid, pair});
+		auto pair = std::make_pair(thread->cproc->csched->curr_oid, thread);
+		vfidToOpcodeRunningMap.insert_or_assign(thread->cproc->vfid, pair);
 
 		auto iter = vfidToOpcodeRunningMap.begin();
 		while (iter != vfidToOpcodeRunningMap.end()) {
-			if (iter->second->first == ctask.getOid()) {
+			if (iter->second.first == ctask->getOid()) {
 				syslog(LOG_NOTICE, "Found vFPGA (%d) running the same OID as requested!", iter->first);
-				iter->second->second->emplaceTask(ctask);
+				iter->second.second->emplaceTask(std::move(ctask));
 				return;
 			}
 			iter++;
 		}
 		// If no vFPGA can be found schedule on the currently running one
-		thread->emplaceTask(ctask);
+		thread->emplaceTask(std::move(ctask));
 	}
 
 	void cSchedManager::StartRunning()
