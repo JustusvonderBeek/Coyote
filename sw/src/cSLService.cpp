@@ -179,7 +179,7 @@ void cSLService::accept_connection()
         mtx_cli.lock();
         
         if(clients.find(connfd) == clients.end()) {
-            clients.insert({connfd, std::make_unique<cSLThread>(vfid, rpid, this)});
+            clients.insert({connfd, std::make_unique<cSLThread>(vfid, rpid, this, schedulingManager)});
             syslog(LOG_NOTICE, "Connection thread created");
         }
 

@@ -50,10 +50,10 @@ namespace fpga
 		
 		// Updating the map
 		auto pair = std::make_pair(thread->cproc->csched->curr_oid, thread);
-		vfidToOpcodeRunningMap.insert_or_assign(thread->cproc->vfid, pair);
+		s_Instance->vfidToOpcodeRunningMap.insert_or_assign(thread->cproc->vfid, pair);
 
-		auto iter = vfidToOpcodeRunningMap.begin();
-		while (iter != vfidToOpcodeRunningMap.end()) {
+		auto iter = s_Instance->vfidToOpcodeRunningMap.begin();
+		while (iter != s_Instance->vfidToOpcodeRunningMap.end()) {
 			if (iter->second.first == ctask->getOid()) {
 				syslog(LOG_NOTICE, "Found vFPGA (%d) running the same OID as requested!", iter->first);
 				iter->second.second->emplaceTask(std::move(ctask));
