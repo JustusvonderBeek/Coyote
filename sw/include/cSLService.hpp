@@ -82,7 +82,7 @@ private:
 
     cSLService(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT, cSchedManager *mgm = nullptr);
 
-    void daemon_init();
+    pid_t daemon_init();
     void socket_init();
     void accept_connection();
 

@@ -64,7 +64,7 @@ void cSLService::my_handler(int signum)
  * @brief Initialize the daemon service
  * 
  */
-void cSLService::daemon_init()
+pid_t cSLService::daemon_init()
 {
     // Fork
     syslog(LOG_NOTICE, "Forking...");
@@ -73,7 +73,9 @@ void cSLService::daemon_init()
     if(pid < 0 ) 
         exit(EXIT_FAILURE);
     if(pid > 0 ) {
-        exit(EXIT_SUCCESS);
+        // exit(EXIT_SUCCESS);
+        // We need this in order to be able to start the other services
+        return pid;
         // while(true) {
         //     std::this_thread::sleep_for(std::chrono::seconds(20));
         // }
@@ -116,6 +118,8 @@ void cSLService::daemon_init()
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
+
+    return pid;
 }
 
 /**
@@ -321,7 +325,9 @@ void cSLService::run() {
     printf("Bitstreams: %lu\n", bstreams.size());
 
     // Init daemon
-    daemon_init();
+    pid_t pid = daemon_init();
+    if (pid > 0)
+        return;
 
     startRequests();
 
