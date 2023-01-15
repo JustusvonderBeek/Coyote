@@ -19,6 +19,38 @@ using namespace std;
 
 namespace fpga {
 
+class taskCmprTask{
+private:
+    bool priority;
+    bool reorder;
+
+public: 
+    taskCmprTask(const bool& priority, const bool& reorder) {
+        this->priority = priority;
+        this->reorder = reorder;
+    }
+
+    bool operator()(const std::unique_ptr<bTask>& req1, const std::unique_ptr<bTask>& req2) {
+        
+            // Comparison
+	    if(priority) {
+		if(req1->getPriority() < req2->getPriority()) return true;
+	    }
+
+	    if(reorder) {
+		if(req1->getPriority() == req2->getPriority()) {
+		    if(req1->getOid() > req2->getOid())
+		        return true;
+		}
+	    }
+        
+        return false;
+    }
+};
+
+
+
+
 /**
  * @brief Coyote thread
  * 
@@ -43,7 +75,8 @@ private:
     /* Task queue */
     mutex mtx_task;
     condition_variable cv_task;
-    queue<std::unique_ptr<bTask>> task_queue;
+    priority_queue<std::unique_ptr<bTask>, vector<std::unique_ptr<bTask>>, taskCmprTask> task_queue;
+    //queue<std::unique_ptr<bTask>> task_queue;
 
     /* Completion queue */
     mutex mtx_cmpl;
@@ -61,7 +94,7 @@ public:
 	 */
     cThread(int32_t vfid, pid_t pid, cSched *csched = nullptr); // create cProcess as well
     cThread(std::shared_ptr<cProcess> cproc); // provide existing cProc
-    cThread(cThread &cthread); // copy constructor
+    //cThread(cThread &cthread); // copy constructor
     ~cThread();
 
     /**

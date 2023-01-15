@@ -21,7 +21,8 @@ void cThread::startThread()
     syslog(LOG_NOTICE, "cThread:  ctor finished");
 }
 
-cThread::cThread(int32_t vfid, pid_t pid, cSched *csched)  
+cThread::cThread(int32_t vfid, pid_t pid, cSched *csched)   :
+      task_queue(taskCmprTask(true, true))  
 { 
     // cProcess
     cproc = std::make_shared<cProcess>(vfid, pid, csched);
@@ -30,7 +31,8 @@ cThread::cThread(int32_t vfid, pid_t pid, cSched *csched)
     startThread();
 }
 
-cThread::cThread(std::shared_ptr<cProcess> cproc)  
+cThread::cThread(std::shared_ptr<cProcess> cproc) :
+      task_queue(taskCmprTask(true, true))  
 { 
     // cProcess
     this->cproc = cproc;
@@ -40,14 +42,15 @@ cThread::cThread(std::shared_ptr<cProcess> cproc)
 }
 
 
-cThread::cThread(cThread &cthread)
-{
-    // cProcess
-    this->cproc = cthread.getCprocess();
-
+//cThread::cThread(cThread &cthread):
+//	task_queue(cthread.task_queue)  
+//{
+//    // cProcess
+//    this->cproc = cthread.getCprocess();
+//
     // Thread
-    startThread();
-}
+//    startThread();
+//}
 
 cThread::~cThread() 
 {
@@ -78,9 +81,9 @@ void cThread::processRequests() {
     while(run || !task_queue.empty()) {
         lck.lock();
         if(!task_queue.empty()) {
-            if(task_queue.front() != nullptr) {
+            if(task_queue.top() != nullptr) {
                 // Remove next task from the queue
-                auto curr_task = std::move(const_cast<std::unique_ptr<bTask>&>(task_queue.front()));
+                auto curr_task = std::move(const_cast<std::unique_ptr<bTask>&>(task_queue.top()));
                 task_queue.pop();
                 lck.unlock();
 
@@ -131,6 +134,7 @@ int32_t cThread::getCompletedNext() {
 void cThread::scheduleTask(std::unique_ptr<bTask> ctask) {
     lock_guard<mutex> lck2(mtx_task);
     task_queue.emplace(std::move(ctask));
+	//std::unique_ptr<cLoad>(new cLoad{cpid, oid, priority})
 }
 
 }
