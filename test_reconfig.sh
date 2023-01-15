@@ -129,7 +129,7 @@ if [[ $kill_running -eq 1 ]]; then
 fi
 
 # Expecting the file to be in the main folder!
-cd build_reconfiguration_bench_sw_service
+cd test_scheduling_sw_service
 
 # Starting the service
 sudo ./main -i $vfpga
@@ -137,12 +137,15 @@ sudo ./main -i $vfpga
 # Start taking time
 STARTTIME=$(date +%s%N)
 
+# Used to schedule the clients equally to the vFPGAs
+clientVFPGA=0
 # Starting the client(s)
 for ((i=1 ; i<=$clients ; i++));
 do
-    echo "Starting client $i"
+    echo "Starting client $i on vFPGA $clientVFPGA"
     # Starting in background so that they do not block
-    sudo ../build_reconfiguration_bench_sw_client/main -i $iteration -n $application &
+    sudo ../test_scheduling_sw_client/main -v $clientVFPGA -i $iteration -n $application &
+    clientVFPGA=$((++clientVFPGA % $vfpga))
 done
 
 echo "$(jobs -l)"

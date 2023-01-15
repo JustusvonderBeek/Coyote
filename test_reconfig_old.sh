@@ -46,10 +46,10 @@ print_usage() {
     echo -e "$0 [-i <iteration>] [-a <applications>] [-v <vFPGAs>] [-c <clients>] [-k] [-e] [-h]\n"
     echo -e "-i <iterations>:\tThe number of iterations per client."
     echo -e "-a <applications>:\tThe number of applications per client per iteration."
-    echo -e "-v <vFPGAs>:\t\tThe vFPGAs that the schedule manager should manage."
+    echo -e "-v <vFPGAs>:\t\tThe number of vFPGAs that should be started."
     echo -e "-c <clients>:\t\tThe number of clients to start in parallel."
     echo -e "-k :\t\tIf set running services are killed."
-    echo -e "-e :\t\tIf set the service is ended after execution."
+    echo -e "-e :\t\tIf set the service(s) is ended after execution."
     exit 1
 }
 
@@ -143,12 +143,15 @@ done
 # Start taking time
 STARTTIME=$(date +%s%N)
 
+# Used to schedule the clients equally to the vFPGAs
+clientVFPGA=0
 # Starting the client(s)
 for ((i=1 ; i<=$clients ; i++));
 do
-    echo "Starting client $i"
+    echo "Starting client $i on vFPGA $clientVFPGA"
     # Starting in background so that they do not block
-    sudo ../build_simulate_reschedule_sw_client/main -i $iteration -n $application &
+    sudo ../build_simulate_reschedule_sw_client/main -v $clientVFPGA -i $iteration -n $application &
+    clientVFPGA=$((++clientVFPGA % $vfpga))
 done
 
 echo "$(jobs -l)"
