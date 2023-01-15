@@ -1,4 +1,3 @@
-#include "cSLService.hpp"
 #include "cSchedManager.hpp"
 
 namespace fpga

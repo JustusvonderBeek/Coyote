@@ -1,6 +1,5 @@
-#include "cThread.hpp"
+#include "cSLThread.hpp"
 
-#include <syslog.h>
 
 namespace fpga {
 

@@ -30,6 +30,11 @@
 #include <condition_variable>
 #include <any>
 
+#include "cSLThread.hpp"
+#include "cTask.hpp"
+#include "cSLService.hpp"
+#include "cSched.hpp"
+
 using namespace std;
 namespace fpga
 {

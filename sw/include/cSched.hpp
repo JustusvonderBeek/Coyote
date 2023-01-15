@@ -184,7 +184,7 @@ public:
 	 * @brief Ctor, Dtor
 	 * 
 	 */
-	cSched(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT, cSchedManager mgm);
+	cSched(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT, cSchedManager *mgm = nullptr);
 	~cSched();
 
 	/**

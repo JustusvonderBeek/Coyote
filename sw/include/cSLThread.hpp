@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <limits>
 #include <unordered_map>
+#include <syslog.h>
 
 #include "cDefs.hpp"
 #include "cProcess.hpp"
@@ -60,7 +61,7 @@ public:
 	 * @brief Ctor, Dtor
 	 * 
 	 */
-    cSLThread(int32_t vfid, pid_t pid, cSched *csched = nullptr, cSchedManager *mgm); // create cProcess as well
+    cSLThread(int32_t vfid, pid_t pid, cSched *csched = nullptr, cSchedManager *mgm = nullptr); // create cProcess as well
     cSLThread(std::shared_ptr<cProcess> cproc); // provide existing cProc
     cSLThread(cSLThread &cthread); // copy constructor
     ~cSLThread();
