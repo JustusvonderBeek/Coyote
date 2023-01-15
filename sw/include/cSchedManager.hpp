@@ -42,6 +42,7 @@ namespace fpga
 
 			cSchedManager();
 			std::unordered_map<int, cSLService*> schedMap;
+			std::unordered_map<int, std::pair<int, cSLThread *>> vfidToOpcodeRunningMap;
 			cSLService* getSchedulerWithID(int32_t vfid, bool priority = true, bool reorder = true, schedType type= DEFAULT);
 
 		public:
@@ -61,6 +62,8 @@ namespace fpga
 				}
 				return s_Instance->getSchedulerWithID(vfid, priority, reorder, type);
 			}
+
+			void scheduleTask(std::unique_ptr<bTask> ctask, cSLThread *thread);
 
 			static void StartRunning();
 

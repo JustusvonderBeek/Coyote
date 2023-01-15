@@ -55,7 +55,7 @@ class cProcess {
 protected: 
 	/* Fpga device */
 	int32_t fd = { 0 };
-	int32_t vfid = { -1 };
+	
 	int32_t cpid = { -1 };
 	pid_t pid = { 0 };
 	fCnfg fcnfg;
@@ -65,9 +65,7 @@ protected:
 	named_mutex mlock; // Internal memory lock
 	named_mutex dlock; // Internal vFPGA lock
 
-    /* Scheduler */
-    cSched *csched = { nullptr };
-
+   
 	/* Used markers */
 	uint32_t rd_cmd_cnt = { 0 };
 	uint32_t wr_cmd_cnt = { 0 };
@@ -107,6 +105,9 @@ protected:
 	inline auto mUnlock() { mlock.unlock(); }
 
 public:
+	int32_t vfid = { -1 };
+ 	/* Scheduler */
+    cSched *csched = { nullptr };
 	std::mt19937 rng;
 
 	/**

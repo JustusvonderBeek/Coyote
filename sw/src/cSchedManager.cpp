@@ -5,6 +5,8 @@ namespace fpga
 {
 	cSchedManager* cSchedManager:: s_Instance = nullptr;
 
+	
+
 	cSchedManager::cSchedManager()
 	{
 	}
@@ -33,8 +35,9 @@ namespace fpga
 		
 		if(foundScheduler == schedMap.end())
 		{
-			returnSched = cSLService::getInstance(vfid, priority, reorder, type);
+			returnSched = cSLService::getInstance(vfid, priority, reorder, type, this);
 			schedMap.insert({vfid, returnSched});
+			vfidToOpcodeRunningMap.insert({vfid, std::make_pair(-1, nullptr)});
 		}
 		else
 		{
@@ -42,6 +45,25 @@ namespace fpga
 		}
 
 		return returnSched;
+	}
+
+	void cSchedManager::scheduleTask(std::unique_ptr<bTask> ctask, cSLThread *thread) {
+		
+		// Updating the map
+		auto pair = std::make_pair(thread->cproc->curr_oid, thread);
+		vfidToOpcodeRunningMap.insert_or_assign({thread->cproc->vfid, pair});
+
+		auto iter = vfidToOpcodeRunningMap.begin();
+		while (iter != vfidToOpcodeRunningMap.end()) {
+			if (iter->second->first == ctask.getOid()) {
+				syslog(LOG_NOTICE, "Found vFPGA (%d) running the same OID as requested!", iter->first);
+				iter->second->second->emplaceTask(ctask);
+				return;
+			}
+			iter++;
+		}
+		// If no vFPGA can be found schedule on the currently running one
+		thread->emplaceTask(ctask);
 	}
 
 	void cSchedManager::StartRunning()

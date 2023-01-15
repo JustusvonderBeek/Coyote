@@ -13,8 +13,8 @@ namespace fpga {
  * 
  * @param vfid
  */
-cSLService::cSLService(int32_t vfid, bool priority, bool reorder, schedType type) 
-    : vfid(vfid), cSched(vfid, priority, reorder, type)
+cSLService::cSLService(int32_t vfid, bool priority, bool reorder, schedType type, cSchedManager mgm) 
+    : vfid(vfid), schedulingManager(mgm), cSched(vfid, priority, reorder, type)
 {
     // ID
     service_id = ("coyote-daemon-vfid-" + std::to_string(vfid)).c_str();
@@ -179,7 +179,7 @@ void cSLService::accept_connection()
         mtx_cli.lock();
         
         if(clients.find(connfd) == clients.end()) {
-            clients.insert({connfd, std::make_unique<cThread>(vfid, rpid, this)});
+            clients.insert({connfd, std::make_unique<cSLThread>(vfid, rpid, this)});
             syslog(LOG_NOTICE, "Connection thread created");
         }
 

@@ -26,8 +26,8 @@ namespace fpga {
  * 
  * @param vfid - vFPGA id
  */
-cSched::cSched(int32_t vfid, bool priority, bool reorder, schedType type) 
-    : vfid(vfid), priority(priority), reorder(reorder), type(type), rng(42),
+cSched::cSched(int32_t vfid, bool priority, bool reorder, schedType type, cSchedManager mgm) 
+    : vfid(vfid), priority(priority), reorder(reorder), type(type), rng(42), schedulingManager(mgm),
       mlock(open_or_create, "vpga_mtx_mem_" + vfid),
       plock(open_or_create, "vpga_mtx_user_" + vfid),
       request_queue(taskCmprSched(priority, reorder, type)) 
@@ -113,7 +113,7 @@ void cSched::processRequests()
     unique_lock<mutex> lck_complete(mtx_cmpl);
     run = true;
     bool recIssued = false;
-    int32_t curr_oid = -1;
+    curr_oid = -1;
 	syslog(LOG_NOTICE, "Starting processing requests in the scheduler...");
     lck_queue.unlock();
 	cv_queue.notify_one();

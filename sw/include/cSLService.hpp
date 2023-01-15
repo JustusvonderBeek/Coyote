@@ -47,6 +47,7 @@ private:
     // Singleton
     //static cSLService *cservice;
     bool m_bIsRunning = false;
+    cSchedManager *schedulingManager;
 
     // Forks
     pid_t pid;
@@ -68,12 +69,12 @@ private:
 
     // Clients
     mutex mtx_cli;
-    unordered_map<int, std::unique_ptr<cThread>> clients;
+    unordered_map<int, std::unique_ptr<cSLThread>> clients;
 
     // Task map
     unordered_map<int, std::function<void(cProcess*, std::vector<uint64_t>)>> task_map;
 
-    cSLService(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT);
+    cSLService(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT, cSchedManager mgm);
 
     void daemon_init();
     void socket_init();
@@ -96,8 +97,8 @@ public:
      * @param f_rsp - Process responses
      */
 
-    static cSLService* getInstance(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT) {
-        return new cSLService(vfid, priority, reorder, type);
+    static cSLService* getInstance(int32_t vfid, bool priority = true, bool reorder = true, schedType type = DEFAULT, cSchedManager mgm) {
+        return new cSLService(vfid, priority, reorder, type, mgm);
     }
 
     /**
