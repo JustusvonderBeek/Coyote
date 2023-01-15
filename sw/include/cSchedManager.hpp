@@ -70,6 +70,8 @@ namespace fpga
 				return s_Instance->getSchedulerWithID(vfid, priority, reorder, type);
 			}
 
+			void insertThread(cSLThread *thread);
+			void removeThread(cSLThread *thread);
 			void scheduleTask(std::unique_ptr<bTask> ctask, cSLThread *thread);
 
 			static void StartRunning();

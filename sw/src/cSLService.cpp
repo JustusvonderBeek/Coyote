@@ -237,7 +237,11 @@ void cSLService::process_requests() {
                 case defOpClose:
                     syslog(LOG_NOTICE, "Received close connection request, connfd: %d", connfd);
                     close(connfd);
-                    clients.erase(el.first);
+                    syslog(LOG_NOTICE, "Closed connection %d", connfd);
+                    schedulingManager->removeThread(el.second.get());
+                    // Removes the thread (calling the destructor)
+                    // clients.erase(el.first);
+                    syslog(LOG_NOTICE, "Destroyed client");
                     break;
 
                 // Schedule the task

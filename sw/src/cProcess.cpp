@@ -59,6 +59,8 @@ cProcess::cProcess(int32_t vfid, pid_t pid, cSched *csched) : vfid(vfid), pid(pi
 		throw std::runtime_error("ioctl_read_cnfg() failed");
 
 	fcnfg.parseCnfg(tmp[0]);
+
+	close(fd);
 	// syslog(LOG_NOTICE, "-- CONFIG -------------------------------------");
 	// syslog(LOG_NOTICE, "-----------------------------------------------");
 	// syslog(LOG_NOTICE, "Enabled AVX: %d", fcnfg.en_avx);
@@ -75,10 +77,10 @@ cProcess::cProcess(int32_t vfid, pid_t pid, cSched *csched) : vfid(vfid), pid(pi
 	// syslog(LOG_NOTICE, "Number of vFPGAs: %d", fcnfg.n_fpga_reg);
 
 	// Mmap
-	mmapFpga();
+	// mmapFpga();
 
 	// Clear
-	clearCompleted();
+	// clearCompleted();
 }
 
 /**
@@ -90,24 +92,24 @@ cProcess::~cProcess() {
 	
 	uint64_t tmp = cpid;
 
-	ioctl(fd, IOCTL_UNREGISTER_PID, &tmp);
+	// ioctl(fd, IOCTL_UNREGISTER_PID, &tmp);
 	
 	// Manage TLB
 	for(auto& it: mapped_upages) {
-		userUnmap(it);
+		// userUnmap(it);
 	}
 
 	for(auto& it: mapped_pages) {
-		freeMem(it.first);
+		// freeMem(it.first);
 	}
 
-	munmapFpga();
+	// munmapFpga();
 
 	named_mutex::remove("vfpga_mtx_user_" + vfid);
 	named_mutex::remove("vfpga_mtx_data_" + vfid);
 	named_mutex::remove("vfpga_mtx_mem_" + vfid);
 
-	close(fd);
+	// close(fd);
 }
 
 /**
@@ -116,39 +118,39 @@ cProcess::~cProcess() {
  */
 void cProcess::mmapFpga() {
 	// Config 
-#ifdef EN_AVX
-	if(fcnfg.en_avx) {
-		cnfg_reg_avx = (__m256i*) mmap(NULL, cnfgAvxRegionSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, mmapCnfgAvx);
-		if(cnfg_reg_avx == MAP_FAILED)
-		 	throw std::runtime_error("cnfg_reg_avx mmap failed");
+// #ifdef EN_AVX
+// 	if(fcnfg.en_avx) {
+// 		cnfg_reg_avx = (__m256i*) mmap(NULL, cnfgAvxRegionSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, mmapCnfgAvx);
+// 		if(cnfg_reg_avx == MAP_FAILED)
+// 		 	throw std::runtime_error("cnfg_reg_avx mmap failed");
 
-		DBG3("cProcess::  mapped cnfg_reg_avx at: " << std::hex << reinterpret_cast<uint64_t>(cnfg_reg_avx) << std::dec);
-	} else {
-#endif
-		cnfg_reg = (uint64_t*) mmap(NULL, cnfgRegionSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, mmapCnfg);
-		if(cnfg_reg == MAP_FAILED)
-			throw std::runtime_error("cnfg_reg mmap failed");
+// 		DBG3("cProcess::  mapped cnfg_reg_avx at: " << std::hex << reinterpret_cast<uint64_t>(cnfg_reg_avx) << std::dec);
+// 	} else {
+// #endif
+// 		cnfg_reg = (uint64_t*) mmap(NULL, cnfgRegionSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, mmapCnfg);
+// 		if(cnfg_reg == MAP_FAILED)
+// 			throw std::runtime_error("cnfg_reg mmap failed");
 		
-		DBG3("cProcess:  mapped cnfg_reg at: " << std::hex << reinterpret_cast<uint64_t>(cnfg_reg) << std::dec);
-#ifdef EN_AVX
-	}
-#endif
+// 		DBG3("cProcess:  mapped cnfg_reg at: " << std::hex << reinterpret_cast<uint64_t>(cnfg_reg) << std::dec);
+// #ifdef EN_AVX
+// 	}
+// #endif
 
-	// Control
-	ctrl_reg = (uint64_t*) mmap(NULL, ctrlRegionSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, mmapCtrl);
-	if(ctrl_reg == MAP_FAILED) 
-		throw std::runtime_error("ctrl_reg mmap failed");
+// 	// Control
+// 	ctrl_reg = (uint64_t*) mmap(NULL, ctrlRegionSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, mmapCtrl);
+// 	if(ctrl_reg == MAP_FAILED) 
+// 		throw std::runtime_error("ctrl_reg mmap failed");
 	
-	DBG3("cProcess:  mapped ctrl_reg at: " << std::hex << reinterpret_cast<uint64_t>(ctrl_reg) << std::dec);
+// 	DBG3("cProcess:  mapped ctrl_reg at: " << std::hex << reinterpret_cast<uint64_t>(ctrl_reg) << std::dec);
 
-	// Writeback
-	if(fcnfg.en_wb) {
-		wback = (uint32_t*) mmap(NULL, wbackRegionSize, PROT_READ, MAP_SHARED, fd, mmapWb);
-		if(wback == MAP_FAILED) 
-			throw std::runtime_error("wback mmap failed");
+// 	// Writeback
+// 	if(fcnfg.en_wb) {
+// 		wback = (uint32_t*) mmap(NULL, wbackRegionSize, PROT_READ, MAP_SHARED, fd, mmapWb);
+// 		if(wback == MAP_FAILED) 
+// 			throw std::runtime_error("wback mmap failed");
 
-		DBG3("cProcess:  mapped writeback regions at: " << std::hex << reinterpret_cast<uint64_t>(wback) << std::dec);
-	}
+// 		DBG3("cProcess:  mapped writeback regions at: " << std::hex << reinterpret_cast<uint64_t>(wback) << std::dec);
+// 	}
 }
 
 /**
@@ -158,34 +160,34 @@ void cProcess::mmapFpga() {
 void cProcess::munmapFpga() {
 	
 	// Config
-#ifdef EN_AVX
-	if(fcnfg.en_avx) {
-		if(munmap((void*)cnfg_reg_avx, cnfgAvxRegionSize) != 0) 
-			throw std::runtime_error("cnfg_reg_avx munmap failed");
-	} else {
-#endif
-		if(munmap((void*)cnfg_reg, cnfgRegionSize) != 0) 
-			throw std::runtime_error("cnfg_reg munmap failed");
-#ifdef EN_AVX
-	}
-#endif
+// #ifdef EN_AVX
+// 	if(fcnfg.en_avx) {
+// 		if(munmap((void*)cnfg_reg_avx, cnfgAvxRegionSize) != 0) 
+// 			throw std::runtime_error("cnfg_reg_avx munmap failed");
+// 	} else {
+// #endif
+// 		if(munmap((void*)cnfg_reg, cnfgRegionSize) != 0) 
+// 			throw std::runtime_error("cnfg_reg munmap failed");
+// #ifdef EN_AVX
+// 	}
+// #endif
 
-	// Control
-	if(munmap((void*)ctrl_reg, ctrlRegionSize) != 0)
-		throw std::runtime_error("ctrl_reg munmap failed");
+// 	// Control
+// 	if(munmap((void*)ctrl_reg, ctrlRegionSize) != 0)
+// 		throw std::runtime_error("ctrl_reg munmap failed");
 
-	// Writeback
-	if(fcnfg.en_wb) {
-		if(munmap((void*)wback, wbackRegionSize) != 0)
-			throw std::runtime_error("wback munmap failed");
-	}
+// 	// Writeback
+// 	if(fcnfg.en_wb) {
+// 		if(munmap((void*)wback, wbackRegionSize) != 0)
+// 			throw std::runtime_error("wback munmap failed");
+// 	}
 
-#ifdef EN_AVX
-	cnfg_reg_avx = 0;
-#endif
-	cnfg_reg = 0;
-	ctrl_reg = 0;
-	wback = 0;
+// #ifdef EN_AVX
+// 	cnfg_reg_avx = 0;
+// #endif
+// 	cnfg_reg = 0;
+// 	ctrl_reg = 0;
+// 	wback = 0;
 }
 
 // ======-------------------------------------------------------------------------------
@@ -204,10 +206,10 @@ void cProcess::userMap(void *vaddr, uint32_t len) {
 	tmp[1] = static_cast<uint64_t>(len);
 	tmp[2] = static_cast<uint64_t>(cpid);
 
-	if(ioctl(fd, IOCTL_MAP_USER, &tmp))
-		throw std::runtime_error("ioctl_map_user() failed");
+	// if(ioctl(fd, IOCTL_MAP_USER, &tmp))
+	// 	throw std::runtime_error("ioctl_map_user() failed");
 
-	mapped_upages.emplace(vaddr);
+	// mapped_upages.emplace(vaddr);
 	DBG3("Explicit map user mem at: " << std::hex << reinterpret_cast<uint64_t>(vaddr) << std::dec);
 }
 
@@ -221,12 +223,12 @@ void cProcess::userUnmap(void *vaddr) {
 	tmp[0] = reinterpret_cast<uint64_t>(vaddr);
 	tmp[1] = static_cast<uint64_t>(cpid);
 
-	if(mapped_upages.find(vaddr) != mapped_upages.end()) {
-		if(ioctl(fd, IOCTL_UNMAP_USER, &tmp)) 
-			throw std::runtime_error("ioctl_unmap_user() failed");
+	// if(mapped_upages.find(vaddr) != mapped_upages.end()) {
+	// 	if(ioctl(fd, IOCTL_UNMAP_USER, &tmp)) 
+	// 		throw std::runtime_error("ioctl_unmap_user() failed");
 
-		mapped_upages.erase(vaddr);
-	}	
+	// 	mapped_upages.erase(vaddr);
+	// }	
 }
 
 /**
@@ -247,37 +249,37 @@ void* cProcess::getMem(const csAlloc& cs_alloc) {
 
 		switch (cs_alloc.alloc) {
 			case CoyoteAlloc::REG_4K : // drv lock
-				size = cs_alloc.n_pages * (1 << pageShift);
-				mem = memalign(axiDataWidth, size);
-				userMap(mem, size);
+				// size = cs_alloc.n_pages * (1 << pageShift);
+				// mem = memalign(axiDataWidth, size);
+				// userMap(mem, size);
 				
 				break;
 
 			case CoyoteAlloc::HUGE_2M : // drv lock
-				size = cs_alloc.n_pages * (1 << hugePageShift);
-				mem = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, -1, 0);
-				userMap(mem, size);
+				// size = cs_alloc.n_pages * (1 << hugePageShift);
+				// mem = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, -1, 0);
+				// userMap(mem, size);
 				
 				break;
 
 			case CoyoteAlloc::HOST_2M : // m lock
 
-				mLock();
+				// mLock();
 
-				if(ioctl(fd, IOCTL_ALLOC_HOST_USER_MEM, &tmp)) {
-					mUnlock();
-					throw std::runtime_error("ioctl_alloc_host_user_mem() failed");
-				}
+				// if(ioctl(fd, IOCTL_ALLOC_HOST_USER_MEM, &tmp)) {
+				// 	mUnlock();
+				// 	throw std::runtime_error("ioctl_alloc_host_user_mem() failed");
+				// }
 					
-				memNonAligned = mmap(NULL, (cs_alloc.n_pages + 1) * hugePageSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, mmapBuff);
-				if(memNonAligned == MAP_FAILED) {
-					mUnlock();
-					throw std::runtime_error("get_host_mem mmap failed");
-				}
+				// memNonAligned = mmap(NULL, (cs_alloc.n_pages + 1) * hugePageSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, mmapBuff);
+				// if(memNonAligned == MAP_FAILED) {
+				// 	mUnlock();
+				// 	throw std::runtime_error("get_host_mem mmap failed");
+				// }
 
-				mUnlock();
+				// mUnlock();
 					
-				mem =  (void*)( (((reinterpret_cast<uint64_t>(memNonAligned) + hugePageSize - 1) >> hugePageShift)) << hugePageShift);
+				// mem =  (void*)( (((reinterpret_cast<uint64_t>(memNonAligned) + hugePageSize - 1) >> hugePageShift)) << hugePageShift);
 
 				break;
 
@@ -285,8 +287,8 @@ void* cProcess::getMem(const csAlloc& cs_alloc) {
 				break;
 		}
 
-		mapped_pages.emplace(mem, std::make_pair(cs_alloc, memNonAligned));
-		DBG3("Mapped mem at: " << std::hex << reinterpret_cast<uint64_t>(mem) << std::dec);
+		// mapped_pages.emplace(mem, std::make_pair(cs_alloc, memNonAligned));
+		// DBG3("Mapped mem at: " << std::hex << reinterpret_cast<uint64_t>(mem) << std::dec);
 	}
 
 	return mem;
@@ -304,47 +306,47 @@ void cProcess::freeMem(void* vaddr) {
 	tmp[0] = reinterpret_cast<uint64_t>(vaddr);
 	tmp[1] = static_cast<int32_t>(cpid);
 
-	if(mapped_pages.find(vaddr) != mapped_pages.end()) {
-		auto mapped = mapped_pages[vaddr];
+	// if(mapped_pages.find(vaddr) != mapped_pages.end()) {
+	// 	auto mapped = mapped_pages[vaddr];
 		
-		switch (mapped.first.alloc) {
-		case CoyoteAlloc::REG_4K : // drv lock
-			size = mapped.first.n_pages * (1 << pageShift);
-			userUnmap(vaddr);
-			free(vaddr);
+	// 	switch (mapped.first.alloc) {
+	// 	case CoyoteAlloc::REG_4K : // drv lock
+	// 		// size = mapped.first.n_pages * (1 << pageShift);
+	// 		// userUnmap(vaddr);
+	// 		// free(vaddr);
 
-			break;
+	// 		break;
 
-		case CoyoteAlloc::HUGE_2M : // drv lock
-			size = mapped.first.n_pages * (1 << hugePageShift);
-			userUnmap(vaddr);
-			munmap(vaddr, size);
+	// 	case CoyoteAlloc::HUGE_2M : // drv lock
+	// 		// size = mapped.first.n_pages * (1 << hugePageShift);
+	// 		// userUnmap(vaddr);
+	// 		// munmap(vaddr, size);
 
-			break;
+	// 		break;
 
-		case CoyoteAlloc::HOST_2M : // m lock
-			mLock();
+	// 	case CoyoteAlloc::HOST_2M : // m lock
+	// 		// mLock();
 
-			if(munmap(mapped.second, (mapped.first.n_pages + 1) * hugePageSize) != 0) {
-				mUnlock();
-				throw std::runtime_error("free_host_mem munmap failed");
-			}
+	// 		// if(munmap(mapped.second, (mapped.first.n_pages + 1) * hugePageSize) != 0) {
+	// 		// 	mUnlock();
+	// 		// 	throw std::runtime_error("free_host_mem munmap failed");
+	// 		// }
 
-			if(ioctl(fd, IOCTL_FREE_HOST_USER_MEM, &tmp)) {
-				mUnlock();
-				throw std::runtime_error("ioctl_free_host_user_mem() failed");
-			}
+	// 		// if(ioctl(fd, IOCTL_FREE_HOST_USER_MEM, &tmp)) {
+	// 		// 	mUnlock();
+	// 		// 	throw std::runtime_error("ioctl_free_host_user_mem() failed");
+	// 		// }
 				
-			mUnlock();
+	// 		// mUnlock();
 
-			break;
+	// 		break;
 
-		default:
-			break;
-		}
+	// 	default:
+	// 		break;
+	// 	}
 
-		mapped_pages.erase(vaddr);
-	}
+	// 	// mapped_pages.erase(vaddr);
+	// }
 }
 
 // ======-------------------------------------------------------------------------------
@@ -388,113 +390,113 @@ void cProcess::pUnlock()
  * @param cs_invoke - Coyote invoke struct
  */
 void cProcess::invoke(const csInvokeAll& cs_invoke) {
-	if(isSync(cs_invoke.oper)) if(!fcnfg.en_mem) return;
-	if(cs_invoke.oper == CoyoteOper::NOOP) return;
+	// if(isSync(cs_invoke.oper)) if(!fcnfg.en_mem) return;
+	// if(cs_invoke.oper == CoyoteOper::NOOP) return;
 
 	// Lock
-	dlock.lock();
+// 	dlock.lock();
 	
-	// Check outstanding read
-	if(isRead(cs_invoke.oper)) {
-		while (rd_cmd_cnt > (cmd_fifo_depth - cmd_fifo_thr)) {
-#ifdef EN_AVX
-			rd_cmd_cnt = fcnfg.en_avx ? LOW_16(_mm256_extract_epi32(cnfg_reg_avx[static_cast<uint32_t>(CnfgAvxRegs::STAT_REG)], 0x0)) :
-										cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::STAT_CMD_USED_RD_REG)];
-#else
-			rd_cmd_cnt = cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::STAT_CMD_USED_RD_REG)];
-#endif
-			if (rd_cmd_cnt > (cmd_fifo_depth - cmd_fifo_thr))
-				nanosleep((const struct timespec[]){{0, 100L}}, NULL);
-		}
-	}
+// 	// Check outstanding read
+// 	if(isRead(cs_invoke.oper)) {
+// 		while (rd_cmd_cnt > (cmd_fifo_depth - cmd_fifo_thr)) {
+// #ifdef EN_AVX
+// 			rd_cmd_cnt = fcnfg.en_avx ? LOW_16(_mm256_extract_epi32(cnfg_reg_avx[static_cast<uint32_t>(CnfgAvxRegs::STAT_REG)], 0x0)) :
+// 										cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::STAT_CMD_USED_RD_REG)];
+// #else
+// 			rd_cmd_cnt = cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::STAT_CMD_USED_RD_REG)];
+// #endif
+// 			if (rd_cmd_cnt > (cmd_fifo_depth - cmd_fifo_thr))
+// 				nanosleep((const struct timespec[]){{0, 100L}}, NULL);
+// 		}
+// 	}
 
-	// Check outstanding write
-	if(isWrite(cs_invoke.oper)) {
-		while (wr_cmd_cnt > (cmd_fifo_depth - cmd_fifo_thr)) {
-#ifdef EN_AVX
-			wr_cmd_cnt = fcnfg.en_avx ? HIGH_16(_mm256_extract_epi32(cnfg_reg_avx[static_cast<uint32_t>(CnfgAvxRegs::STAT_REG)], 0x0)) : 
-										cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::STAT_CMD_USED_WR_REG)];
-#else
-			wr_cmd_cnt = cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::STAT_CMD_USED_WR_REG)];
-#endif
-			if (wr_cmd_cnt > (cmd_fifo_depth - cmd_fifo_thr))
-				nanosleep((const struct timespec[]){{0, 100L}}, NULL);
-		}
-	}
+// 	// Check outstanding write
+// 	if(isWrite(cs_invoke.oper)) {
+// 		while (wr_cmd_cnt > (cmd_fifo_depth - cmd_fifo_thr)) {
+// #ifdef EN_AVX
+// 			wr_cmd_cnt = fcnfg.en_avx ? HIGH_16(_mm256_extract_epi32(cnfg_reg_avx[static_cast<uint32_t>(CnfgAvxRegs::STAT_REG)], 0x0)) : 
+// 										cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::STAT_CMD_USED_WR_REG)];
+// #else
+// 			wr_cmd_cnt = cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::STAT_CMD_USED_WR_REG)];
+// #endif
+// 			if (wr_cmd_cnt > (cmd_fifo_depth - cmd_fifo_thr))
+// 				nanosleep((const struct timespec[]){{0, 100L}}, NULL);
+// 		}
+// 	}
 
-	// Send
-#ifdef EN_AVX
-	if(fcnfg.en_avx) {
-		uint64_t len_cmd = (static_cast<uint64_t>(cs_invoke.dst_len) << 32) | cs_invoke.src_len;
-		uint64_t ctrl_cmd = 
-			(isRead(cs_invoke.oper) ? CTRL_START_RD : 0x0) | 
-			(cs_invoke.clr_stat ? CTRL_CLR_STAT_RD : 0x0) | 
-			(cs_invoke.stream ? CTRL_STREAM_RD : 0x0) | 
-			((cs_invoke.dest & CTRL_DEST_MASK) << CTRL_DEST_RD) |
-			((cpid & CTRL_PID_MASK) << CTRL_PID_RD) |
-			(cs_invoke.oper == CoyoteOper::OFFLOAD ? CTRL_SYNC_RD : 0x0) |
-			(isWrite(cs_invoke.oper) ? CTRL_START_WR : 0x0) | 	
-			(cs_invoke.clr_stat ? CTRL_CLR_STAT_WR : 0x0) | 
-			(cs_invoke.stream ? CTRL_STREAM_WR : 0x0) | 
-			((cpid & CTRL_PID_MASK) << CTRL_PID_WR) |
-			(cs_invoke.oper == CoyoteOper::SYNC ? CTRL_SYNC_WR : 0x0);
+// 	// Send
+// #ifdef EN_AVX
+// 	if(fcnfg.en_avx) {
+// 		uint64_t len_cmd = (static_cast<uint64_t>(cs_invoke.dst_len) << 32) | cs_invoke.src_len;
+// 		uint64_t ctrl_cmd = 
+// 			(isRead(cs_invoke.oper) ? CTRL_START_RD : 0x0) | 
+// 			(cs_invoke.clr_stat ? CTRL_CLR_STAT_RD : 0x0) | 
+// 			(cs_invoke.stream ? CTRL_STREAM_RD : 0x0) | 
+// 			((cs_invoke.dest & CTRL_DEST_MASK) << CTRL_DEST_RD) |
+// 			((cpid & CTRL_PID_MASK) << CTRL_PID_RD) |
+// 			(cs_invoke.oper == CoyoteOper::OFFLOAD ? CTRL_SYNC_RD : 0x0) |
+// 			(isWrite(cs_invoke.oper) ? CTRL_START_WR : 0x0) | 	
+// 			(cs_invoke.clr_stat ? CTRL_CLR_STAT_WR : 0x0) | 
+// 			(cs_invoke.stream ? CTRL_STREAM_WR : 0x0) | 
+// 			((cpid & CTRL_PID_MASK) << CTRL_PID_WR) |
+// 			(cs_invoke.oper == CoyoteOper::SYNC ? CTRL_SYNC_WR : 0x0);
 			
 			
-		cnfg_reg_avx[static_cast<uint32_t>(CnfgAvxRegs::CTRL_REG)] = 
-			_mm256_set_epi64x(len_cmd, reinterpret_cast<uint64_t>(cs_invoke.dst_addr), reinterpret_cast<uint64_t>(cs_invoke.src_addr), ctrl_cmd);
-	} else {
-#endif
-		cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::VADDR_RD_REG)] = reinterpret_cast<uint64_t>(cs_invoke.src_addr);
-		cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::LEN_RD_REG)] = cs_invoke.src_len;
-		cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::CTRL_REG)] = 
-			(isRead(cs_invoke.oper) ? CTRL_START_RD : 0x0) | 
-			(cs_invoke.clr_stat ? CTRL_CLR_STAT_RD : 0x0) |
-			(cs_invoke.stream ? CTRL_STREAM_RD : 0x0) | 
-			((cs_invoke.dest & CTRL_DEST_MASK) << CTRL_DEST_RD) |
-			((cpid & CTRL_PID_MASK) << CTRL_PID_RD) |
-			(cs_invoke.oper == CoyoteOper::OFFLOAD ? CTRL_SYNC_RD : 0x0);
+// 		cnfg_reg_avx[static_cast<uint32_t>(CnfgAvxRegs::CTRL_REG)] = 
+// 			_mm256_set_epi64x(len_cmd, reinterpret_cast<uint64_t>(cs_invoke.dst_addr), reinterpret_cast<uint64_t>(cs_invoke.src_addr), ctrl_cmd);
+// 	} else {
+// #endif
+// 		cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::VADDR_RD_REG)] = reinterpret_cast<uint64_t>(cs_invoke.src_addr);
+// 		cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::LEN_RD_REG)] = cs_invoke.src_len;
+// 		cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::CTRL_REG)] = 
+// 			(isRead(cs_invoke.oper) ? CTRL_START_RD : 0x0) | 
+// 			(cs_invoke.clr_stat ? CTRL_CLR_STAT_RD : 0x0) |
+// 			(cs_invoke.stream ? CTRL_STREAM_RD : 0x0) | 
+// 			((cs_invoke.dest & CTRL_DEST_MASK) << CTRL_DEST_RD) |
+// 			((cpid & CTRL_PID_MASK) << CTRL_PID_RD) |
+// 			(cs_invoke.oper == CoyoteOper::OFFLOAD ? CTRL_SYNC_RD : 0x0);
 
 
-		cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::VADDR_WR_REG)] = reinterpret_cast<uint64_t>(cs_invoke.dst_addr);
-		cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::LEN_WR_REG)] = cs_invoke.dst_len;
-		cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::CTRL_REG)] = 
-			(isWrite(cs_invoke.oper) ? CTRL_START_WR : 0x0) |
-			(cs_invoke.clr_stat ? CTRL_CLR_STAT_WR : 0x0) |
-			(cs_invoke.stream ? CTRL_STREAM_WR : 0x0) | 
-			((cpid & CTRL_PID_MASK) << CTRL_PID_WR) |
-			(cs_invoke.oper == CoyoteOper::SYNC ? CTRL_SYNC_WR : 0x0);
-#ifdef EN_AVX
-	}
-#endif
+// 		cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::VADDR_WR_REG)] = reinterpret_cast<uint64_t>(cs_invoke.dst_addr);
+// 		cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::LEN_WR_REG)] = cs_invoke.dst_len;
+// 		cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::CTRL_REG)] = 
+// 			(isWrite(cs_invoke.oper) ? CTRL_START_WR : 0x0) |
+// 			(cs_invoke.clr_stat ? CTRL_CLR_STAT_WR : 0x0) |
+// 			(cs_invoke.stream ? CTRL_STREAM_WR : 0x0) | 
+// 			((cpid & CTRL_PID_MASK) << CTRL_PID_WR) |
+// 			(cs_invoke.oper == CoyoteOper::SYNC ? CTRL_SYNC_WR : 0x0);
+// #ifdef EN_AVX
+// 	}
+// #endif
 
-	// Inc
-	rd_cmd_cnt++;
-	wr_cmd_cnt++;
+// 	// Inc
+// 	rd_cmd_cnt++;
+// 	wr_cmd_cnt++;
 
-	// Unlock
-	dlock.unlock();	
+// 	// Unlock
+// 	dlock.unlock();	
 
-	// Polling
-	if(cs_invoke.poll) {
-		// TODO: This loop can run indefinitely, resulting in starvation!
-		// while(!checkCompleted(cs_invoke.oper)) nanosleep((const struct timespec[]){{0, 100L}}, NULL);
-		auto time_start = std::chrono::high_resolution_clock::now();
-		auto time_last = std::chrono::high_resolution_clock::now();
-		auto now = std::chrono::high_resolution_clock::now();
-		using dsec = std::chrono::duration<double>;
-		while(!checkCompleted(cs_invoke.oper)) {
-			now = std::chrono::high_resolution_clock::now();
-    		double dur = std::chrono::duration_cast<dsec>(now - time_last).count();
-    		double total_dur = std::chrono::duration_cast<dsec>(now - time_start).count();
-			if (dur > 10.0) {
-				time_last = now;
-				syslog(LOG_NOTICE, "Waiting for task to finish! %.0fs", total_dur);
-			}
-			if (total_dur > 30.0)
-				break;
-			nanosleep((const struct timespec[]){{0, 100L}}, NULL);
-		}
-	}
+// 	// Polling
+// 	if(cs_invoke.poll) {
+// 		// TODO: This loop can run indefinitely, resulting in starvation!
+// 		// while(!checkCompleted(cs_invoke.oper)) nanosleep((const struct timespec[]){{0, 100L}}, NULL);
+// 		auto time_start = std::chrono::high_resolution_clock::now();
+// 		auto time_last = std::chrono::high_resolution_clock::now();
+// 		auto now = std::chrono::high_resolution_clock::now();
+// 		using dsec = std::chrono::duration<double>;
+// 		while(!checkCompleted(cs_invoke.oper)) {
+// 			now = std::chrono::high_resolution_clock::now();
+//     		double dur = std::chrono::duration_cast<dsec>(now - time_last).count();
+//     		double total_dur = std::chrono::duration_cast<dsec>(now - time_start).count();
+// 			if (dur > 10.0) {
+// 				time_last = now;
+// 				syslog(LOG_NOTICE, "Waiting for task to finish! %.0fs", total_dur);
+// 			}
+// 			if (total_dur > 30.0)
+// 				break;
+// 			nanosleep((const struct timespec[]){{0, 100L}}, NULL);
+// 		}
+// 	}
 }
 
 /**
@@ -532,29 +534,30 @@ void cProcess::invoke(const csInvoke& cs_invoke) {
  * @return uint32_t - number of completed operations
  */
 uint32_t cProcess::checkCompleted(CoyoteOper coper) {
-	if(isWrite(coper)) {
-		if(fcnfg.en_wb) {
-			return wback[cpid + nCpidMax];
-		} else {
-#ifdef EN_AVX
-			if(fcnfg.en_avx) 
-				return _mm256_extract_epi32(cnfg_reg_avx[static_cast<uint32_t>(CnfgAvxRegs::STAT_DMA_REG) + cpid], 1);
-			else
-#endif
-				return (HIGH_32(cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::STAT_DMA_REG) + cpid]));
-		}
-	} else {
-		if(fcnfg.en_wb) {
-			return wback[cpid];
-		} else {
-#ifdef EN_AVX
-			if(fcnfg.en_avx) 
-				return _mm256_extract_epi32(cnfg_reg_avx[static_cast<uint32_t>(CnfgAvxRegs::STAT_DMA_REG) + cpid], 0);
-			else 
-#endif
-				return (LOW_32(cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::STAT_DMA_REG) + cpid]));
-		}
-	}
+// 	if(isWrite(coper)) {
+// 		if(fcnfg.en_wb) {
+// 			return wback[cpid + nCpidMax];
+// 		} else {
+// #ifdef EN_AVX
+// 			if(fcnfg.en_avx) 
+// 				return _mm256_extract_epi32(cnfg_reg_avx[static_cast<uint32_t>(CnfgAvxRegs::STAT_DMA_REG) + cpid], 1);
+// 			else
+// #endif
+// 				return (HIGH_32(cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::STAT_DMA_REG) + cpid]));
+// 		}
+// 	} else {
+// 		if(fcnfg.en_wb) {
+// 			return wback[cpid];
+// 		} else {
+// #ifdef EN_AVX
+// 			if(fcnfg.en_avx) 
+// 				return _mm256_extract_epi32(cnfg_reg_avx[static_cast<uint32_t>(CnfgAvxRegs::STAT_DMA_REG) + cpid], 0);
+// 			else 
+// #endif
+// 				return (LOW_32(cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::STAT_DMA_REG) + cpid]));
+// 		}
+// 	}
+	return 1;
 }
 
 /**
@@ -562,13 +565,13 @@ uint32_t cProcess::checkCompleted(CoyoteOper coper) {
  * 
  */
 void cProcess::clearCompleted() {
-#ifdef EN_AVX
-	if(fcnfg.en_avx)
-		cnfg_reg_avx[static_cast<uint32_t>(CnfgAvxRegs::CTRL_REG)] = _mm256_set_epi64x(0, 0, 0, CTRL_CLR_STAT_RD | CTRL_CLR_STAT_WR | 
-			((cpid & CTRL_PID_MASK) << CTRL_PID_RD) | ((cpid & CTRL_PID_MASK) << CTRL_PID_WR));
-	else
-#endif
-		cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::CTRL_REG)] = CTRL_CLR_STAT_RD | CTRL_CLR_STAT_WR | ((cpid & CTRL_PID_MASK) << CTRL_PID_RD) | ((cpid & CTRL_PID_MASK) << CTRL_PID_WR);
+// #ifdef EN_AVX
+// 	if(fcnfg.en_avx)
+// 		cnfg_reg_avx[static_cast<uint32_t>(CnfgAvxRegs::CTRL_REG)] = _mm256_set_epi64x(0, 0, 0, CTRL_CLR_STAT_RD | CTRL_CLR_STAT_WR | 
+// 			((cpid & CTRL_PID_MASK) << CTRL_PID_RD) | ((cpid & CTRL_PID_MASK) << CTRL_PID_WR));
+// 	else
+// #endif
+// 		cnfg_reg[static_cast<uint32_t>(CnfgLegRegs::CTRL_REG)] = CTRL_CLR_STAT_RD | CTRL_CLR_STAT_WR | ((cpid & CTRL_PID_MASK) << CTRL_PID_RD) | ((cpid & CTRL_PID_MASK) << CTRL_PID_WR);
 }
 
 // ======-------------------------------------------------------------------------------

@@ -176,7 +176,7 @@ protected:
 public:
 
     int32_t curr_oid ={ -1 };
-
+    int32_t curr_running = { 0 };
 
 	/**
 	 * @brief Ctor, Dtor
@@ -196,7 +196,7 @@ public:
 	 * 
 	 * @param oid : operator ID
 	 */
-	auto isReconfigurable() const { return fcnfg.en_pr; }
+	auto isReconfigurable() const { return true; }
 	void addBitstream(std::string name, int32_t oid);
 	void removeBitstream(int32_t oid);	
 	bool checkBitstream(int32_t oid); 

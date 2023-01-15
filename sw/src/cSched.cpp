@@ -36,20 +36,22 @@ cSched::cSched(int32_t vfid, bool priority, bool reorder, schedType type)
 
 	syslog(LOG_NOTICE, "(DBG!) Acquiring cSched: %d", vfid);
 	// Open
-	std::string region = "/dev/fpga" + std::to_string(vfid);
-	fd = open(region.c_str(), O_RDWR | O_SYNC); 
-	if(fd == -1)
-		throw std::runtime_error("cSched could not be obtained, vfid: " + to_string(vfid));
+	// std::string region = "/dev/fpga" + std::to_string(vfid);
+	// fd = open(region.c_str(), O_RDWR | O_SYNC); 
+	// if(fd == -1)
+	// 	throw std::runtime_error("cSched could not be obtained, vfid: " + to_string(vfid));
 
-	syslog(LOG_NOTICE, "vFPGA device FD %d obtained in sched", vfid);
+	// syslog(LOG_NOTICE, "vFPGA device FD %d obtained in sched", vfid);
 
-	// Cnfg
-	uint64_t tmp[2];
+	// // Cnfg
+	// uint64_t tmp[2];
 
-	if(ioctl(fd, IOCTL_READ_CNFG, &tmp)) 
-		throw std::runtime_error("ioctl_read_cnfg() failed, vfid: " + to_string(vfid));
+	// if(ioctl(fd, IOCTL_READ_CNFG, &tmp)) 
+	// 	throw std::runtime_error("ioctl_read_cnfg() failed, vfid: " + to_string(vfid));
 
-	fcnfg.parseCnfg(tmp[0]);
+	// // We need the configuration options to be parsed and therefore
+	// // need to execute this function
+	// fcnfg.parseCnfg(tmp[0]);
 
 	// close(fd);
 
@@ -82,11 +84,11 @@ cSched::~cSched()
 	
     // Mapped
     for(auto& it: bstreams) {
-		removeBitstream(it.first);
+		// removeBitstream(it.first);
 	}
 
 	for(auto& it: mapped_pages) {
-		freeMem(it.first);
+		// freeMem(it.first);
 	}
 
     named_mutex::remove("vfpga_mtx_mem_" + vfid);
@@ -134,6 +136,9 @@ void cSched::processRequests()
             lck_queue.unlock();
 
 			syslog(LOG_NOTICE, "Checking reconfiguration..");
+
+			// Signal the scheduling Manager that we are currently running something
+			curr_running = 1;
 
             // Obtain vFPGA
             // This fails if a file lock already exists (therefore it would be smart to change the lock type to a file_lock for testing)
@@ -216,6 +221,9 @@ void cSched::pUnlock(int32_t cpid) {
     if(cpid == curr_cpid) {
 		// plock.unlock();
         cv_cmpl.notify_one();
+		
+		// Signaling that we are currently not running anything
+		curr_running = 0;
     }
 }
 
@@ -242,22 +250,22 @@ void* cSched::getMem(const csAlloc& cs_alloc)
 		switch (cs_alloc.alloc) {
 			case CoyoteAlloc::RCNFG_2M : // m lock
 
-                mLock();
+                // mLock();
 
-				if(ioctl(fd, IOCTL_ALLOC_HOST_PR_MEM, &tmp)) {
-                    mUnlock();
-					throw std::runtime_error("ioctl_alloc_host_pr_mem mapping failed");
-                }
+				// if(ioctl(fd, IOCTL_ALLOC_HOST_PR_MEM, &tmp)) {
+                //     mUnlock();
+				// 	throw std::runtime_error("ioctl_alloc_host_pr_mem mapping failed");
+                // }
 				
-				memNonAligned = mmap(NULL, (cs_alloc.n_pages + 1) * hugePageSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, mmapPr);
-				if(memNonAligned == MAP_FAILED) {
-                    mUnlock();
-					throw std::runtime_error("get_pr_mem mmap failed");
-                }
+				// memNonAligned = mmap(NULL, (cs_alloc.n_pages + 1) * hugePageSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, mmapPr);
+				// if(memNonAligned == MAP_FAILED) {
+                //     mUnlock();
+				// 	throw std::runtime_error("get_pr_mem mmap failed");
+                // }
 
-                mUnlock();
+                // mUnlock();
 
-				mem =  (void*)( (((reinterpret_cast<uint64_t>(memNonAligned) + hugePageSize - 1) >> hugePageShift)) << hugePageShift);
+				// mem =  (void*)( (((reinterpret_cast<uint64_t>(memNonAligned) + hugePageSize - 1) >> hugePageShift)) << hugePageShift);
 
 				break;
 
@@ -265,8 +273,8 @@ void* cSched::getMem(const csAlloc& cs_alloc)
 				throw std::runtime_error("unauthorized memory allocation, vfid: " + to_string(vfid));
 		}
 
-		mapped_pages.emplace(mem, std::make_pair(cs_alloc, memNonAligned));
-		DBG2("Mapped mem at: " << std::hex << reinterpret_cast<uint64_t>(mem) << std::dec);
+		// mapped_pages.emplace(mem, std::make_pair(cs_alloc, memNonAligned));
+		// DBG2("Mapped mem at: " << std::hex << reinterpret_cast<uint64_t>(mem) << std::dec);
 	}
 
 	return mem;
@@ -282,38 +290,38 @@ void cSched::freeMem(void* vaddr)
 	uint64_t tmp[2];
 	uint32_t size;
 
-	tmp[0] = reinterpret_cast<uint64_t>(vaddr);
+	// tmp[0] = reinterpret_cast<uint64_t>(vaddr);
 
-	if(mapped_pages.find(vaddr) != mapped_pages.end()) {
-		auto mapped = mapped_pages[vaddr];
+	// if(mapped_pages.find(vaddr) != mapped_pages.end()) {
+	// 	auto mapped = mapped_pages[vaddr];
 		
-		switch (mapped.first.alloc) {
+	// 	switch (mapped.first.alloc) {
 		
-		case CoyoteAlloc::RCNFG_2M :
+	// 	case CoyoteAlloc::RCNFG_2M :
 
-			mLock();
+	// 		// mLock();
 
-			if(munmap(mapped.second, (mapped.first.n_pages + 1) * hugePageSize) != 0) {
-				mUnlock();
-				throw std::runtime_error("free_pr_mem munmap failed");
-			}
+	// 		// if(munmap(mapped.second, (mapped.first.n_pages + 1) * hugePageSize) != 0) {
+	// 		// 	mUnlock();
+	// 		// 	throw std::runtime_error("free_pr_mem munmap failed");
+	// 		// }
 				
 			
-			if(ioctl(fd, IOCTL_FREE_HOST_PR_MEM, &vaddr)) {
-				mUnlock();
-				throw std::runtime_error("ioctl_free_host_pr_mem failed");
-			}
+	// 		// if(ioctl(fd, IOCTL_FREE_HOST_PR_MEM, &vaddr)) {
+	// 		// 	mUnlock();
+	// 		// 	throw std::runtime_error("ioctl_free_host_pr_mem failed");
+	// 		// }
 				
-			mUnlock();
+	// 		// mUnlock();
 
-			break;
+	// 		break;
 
-		default:
-            throw std::runtime_error("unauthorized memory deallocation, vfid: " + to_string(vfid)); 
-		}
+	// 	default:
+    //         throw std::runtime_error("unauthorized memory deallocation, vfid: " + to_string(vfid)); 
+	// 	}
 
-		mapped_pages.erase(vaddr);
-	}
+	// 	// mapped_pages.erase(vaddr);
+	// }
 }
 
 // ======-------------------------------------------------------------------------------
@@ -382,7 +390,7 @@ void cSched::addBitstream(std::string name, int32_t oid)
 		if(!f_bit) 
 			throw std::runtime_error("Bitstream could not be opened '" + name + "'");
 
-		// Size
+		// // Size
 		uint32_t len = f_bit.tellg();
 		f_bit.seekg(0);
 		uint32_t n_pages = (len + hugePageSize - 1) / hugePageSize;
@@ -391,14 +399,14 @@ void cSched::addBitstream(std::string name, int32_t oid)
 		void* vaddr = getMem({CoyoteAlloc::RCNFG_2M, n_pages});
 		uint32_t* vaddr_32 = reinterpret_cast<uint32_t*>(vaddr);
 
-		// Read in
-		for(uint32_t i = 0; i < len/4; i++) {
-			vaddr_32[i] = 0;
-			vaddr_32[i] |= readByte(f_bit) << 24;
-			vaddr_32[i] |= readByte(f_bit) << 16;
-			vaddr_32[i] |= readByte(f_bit) << 8;
-			vaddr_32[i] |= readByte(f_bit);
-		}
+		// // Read in
+		// for(uint32_t i = 0; i < len/4; i++) {
+		// 	vaddr_32[i] = 0;
+		// 	vaddr_32[i] |= readByte(f_bit) << 24;
+		// 	vaddr_32[i] |= readByte(f_bit) << 16;
+		// 	vaddr_32[i] |= readByte(f_bit) << 8;
+		// 	vaddr_32[i] |= readByte(f_bit);
+		// }
 
 		syslog(LOG_NOTICE, "Bitstream loaded, oid: %d",oid);
 		f_bit.close();

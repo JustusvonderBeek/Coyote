@@ -16,6 +16,8 @@ void cSLThread::startThread()
     syslog(LOG_NOTICE, "cThread:  thread started");
 
     cv_task.wait(lck);
+
+    schedulingManager->insertThread(this);
     syslog(LOG_NOTICE, "cThread:  ctor finished");
 }
 
@@ -136,6 +138,7 @@ void cSLThread::scheduleTask(std::unique_ptr<bTask> ctask) {
     if (schedulingManager == nullptr) {
         throw std::runtime_error("Initialization incorrect! Missing scheduling manager");
     }
+    syslog(LOG_NOTICE, "Scheduling on the schedule manager");
     // Checking in the scheduling manager where to place the task (what FPGA)
     schedulingManager->scheduleTask(std::move(ctask), this);
 }

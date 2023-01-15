@@ -48,23 +48,51 @@ namespace fpga
 		return returnSched;
 	}
 
-	void cSchedManager::scheduleTask(std::unique_ptr<bTask> ctask, cSLThread *thread) {
-		
+	void cSchedManager::insertThread(cSLThread *thread) {
 		// Updating the map
+		if (thread == nullptr)
+			return;
 		auto pair = std::make_pair(thread->cproc->csched->curr_oid, thread);
 		s_Instance->vfidToOpcodeRunningMap.insert_or_assign(thread->cproc->vfid, pair);
-		
+		syslog(LOG_NOTICE, "Added/updated thread into map");
+	}
+
+	void cSchedManager::removeThread(cSLThread *thread) {
+		if (thread == nullptr)
+			return;
+		int vfid = thread->cproc->vfid;
+		s_Instance->vfidToOpcodeRunningMap.erase(vfid);
+		syslog(LOG_NOTICE, "Removed thread on vFPGA %d", vfid);
+	}
+
+	void cSchedManager::scheduleTask(std::unique_ptr<bTask> ctask, cSLThread *thread) {
+		if (thread == nullptr)
+			return;
+		// Updating the map
+		s_Instance->insertThread(thread);
+
 		auto iter = s_Instance->vfidToOpcodeRunningMap.begin();
+		cSLThread *tmpThread = nullptr;
 		while (iter != s_Instance->vfidToOpcodeRunningMap.end()) {
-			if (iter->second.first == ctask->getOid()) {
-				syslog(LOG_NOTICE, "Found vFPGA (%d) running the same OID (%d) as requested (%d)!", iter->first, iter->second.first, ctask->getOid());
-				iter->second.second->emplaceTask(std::move(ctask));
+			std::pair<int, cSLThread *> pair = iter->second;
+			if (pair.first == ctask->getOid()) {
+				syslog(LOG_NOTICE, "Found vFPGA (%d) running the same OID (%d) as requested (%d)!", iter->first, pair.first, ctask->getOid());
+				pair.second->emplaceTask(std::move(ctask));
 				return;
 			}
-			iter++;
+			if (pair.first == -1 && pair.second != nullptr && pair.second->cproc->csched->curr_running == 0 && tmpThread == nullptr) {
+				tmpThread = iter->second.second;
+			}
+			++iter;
 		}
-		// If no vFPGA can be found schedule on the currently running one
-		syslog(LOG_NOTICE, "No vFPGA found running OID %d. Scheduling on original vFPGA.", ctask->getOid());
+		// If no vFPGA can be found schedule on a free one
+		if (tmpThread != nullptr) {
+			syslog(LOG_NOTICE, "No vFPGA found running OID %d. Scheduling on empty vFPGA %d", ctask->getOid(), tmpThread->cproc->vfid);
+			tmpThread->emplaceTask(std::move(ctask));
+			return;
+		}
+
+		syslog(LOG_NOTICE, "No vFPGA found running OID %d and all vFPGA busy. Scheduling on original vFPGA (%d)", ctask->getOid(), thread->cproc->vfid);
 		thread->emplaceTask(std::move(ctask));
 	}
 
