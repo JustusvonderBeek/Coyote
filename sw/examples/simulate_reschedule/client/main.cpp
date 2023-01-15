@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
     using dsec = std::chrono::duration<double>;
     double dur = std::chrono::duration_cast<dsec>(timeEnd-timeBegin).count();
     // With all fluctuations we are not more precise than 4 digits anyway
-    printf("Duration: %.4fs\n", dur);
+    printf("Duration: %.5fs\n", dur);
     printf("Iteration(s): %d\n", iterations);
     printf("Application(s): %d\n", applications);
 
