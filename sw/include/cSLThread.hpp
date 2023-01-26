@@ -83,6 +83,7 @@ public:
      * @brief Completion
      * 
      */
+    void emplaceFinished(int32_t tid);
     int32_t getCompletedNext();
 
     /**

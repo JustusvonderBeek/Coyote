@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
 	{
 	    /* Create a daemon */
 	    cSLService* cservice = cSchedManager::getScheduler(currScheduler);
-	    std::mt19937 rng(seed);
+		std::mt19937 rng(seed);
 
 	    /**
 	     * @brief Load all operators

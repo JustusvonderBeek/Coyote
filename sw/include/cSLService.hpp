@@ -67,6 +67,7 @@ private:
     thread thread_req;
     bool run_rsp = { false };
     thread thread_rsp;
+    thread thread_accept;
 
     // Conn
     string socket_name;
@@ -113,7 +114,7 @@ public:
      * @param f_req - process requests lambda
      * @param f_rsp - process responses lambda
      */
-    void run();
+    thread *run();
     void my_handler(int signum);
     /**
      * @brief Add an arbitrary user task

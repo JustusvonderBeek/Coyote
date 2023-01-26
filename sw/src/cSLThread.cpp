@@ -98,10 +98,11 @@ void cSLThread::processRequests() {
                 syslog(LOG_NOTICE, "Task %d processed", curr_task->getTid());
 
                 // Completion
-                cnt_cmpl++;
-                mtx_cmpl.lock();
-                cmpl_queue.push(curr_task->getTid());
-                mtx_cmpl.unlock();
+                if (cproc->pid == curr_task->getOrigin()) {
+                    emplaceFinished(curr_task->getTid());
+                } else {
+                    schedulingManager->notifyOrigin(std::move(curr_task));
+                }
                  
             } else {
                 task_queue.pop();
@@ -118,6 +119,13 @@ void cSLThread::processRequests() {
 // ======-------------------------------------------------------------------------------
 // Schedule
 // ======-------------------------------------------------------------------------------
+
+void cSLThread::emplaceFinished(int32_t tid) {
+    cnt_cmpl++;
+    mtx_cmpl.lock();
+    cmpl_queue.push(tid);
+    mtx_cmpl.unlock();
+}
 
 int32_t cSLThread::getCompletedNext() {
     if(!cmpl_queue.empty()) {

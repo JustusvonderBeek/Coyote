@@ -161,36 +161,42 @@ void cSLService::socket_init()
  */
 void cSLService::accept_connection()
 {
-    sockaddr_un client;
-    socklen_t len = sizeof(client); 
-    int connfd;
-    char recv_buf[recvBuffSize];
-    int n;
+    syslog(LOG_NOTICE, "Starting accepting connections");
+    while (1)
+    {
+        sockaddr_un client;
+        socklen_t len = sizeof(client); 
+        int connfd;
+        char recv_buf[recvBuffSize];
+        int n;
 
-    if((connfd = accept(sockfd, (struct sockaddr *)&client, &len)) == -1) {
-        syslog(LOG_NOTICE, "No new connections");
-    } else {
-        syslog(LOG_NOTICE, "Connection accepted, connfd: %d", connfd);
-
-        pid_t rpid = 0;
-        if(n = read(connfd, recv_buf, sizeof(pid_t)) == sizeof(pid_t)) {
-            memcpy(&rpid, recv_buf, sizeof(pid_t));
-            syslog(LOG_NOTICE, "Registered pid: %d", rpid);
+        if((connfd = accept(sockfd, (struct sockaddr *)&client, &len)) == -1) {
+            syslog(LOG_NOTICE, "No new connections");
         } else {
-            syslog(LOG_ERR, "Registration failed, connfd: %d, received: %d", connfd, n);
+            syslog(LOG_NOTICE, "Connection accepted, connfd: %d", connfd);
+
+            pid_t rpid = 0;
+            if(n = read(connfd, recv_buf, sizeof(pid_t)) == sizeof(pid_t)) {
+                memcpy(&rpid, recv_buf, sizeof(pid_t));
+                syslog(LOG_NOTICE, "Registered pid: %d", rpid);
+            } else {
+                syslog(LOG_ERR, "Registration failed, connfd: %d, received: %d", connfd, n);
+            }
+
+            mtx_cli.lock();
+            
+            if(clients.find(connfd) == clients.end()) {
+                clients.insert({connfd, std::make_unique<cSLThread>(vfid, rpid, this, schedulingManager)});
+                syslog(LOG_NOTICE, "Connection thread created");
+            }
+
+            mtx_cli.unlock();
         }
 
-        mtx_cli.lock();
+        nanosleep((const struct timespec[]){{0, sleepIntervalDaemon}}, NULL);
         
-        if(clients.find(connfd) == clients.end()) {
-            clients.insert({connfd, std::make_unique<cSLThread>(vfid, rpid, this, schedulingManager)});
-            syslog(LOG_NOTICE, "Connection thread created");
-        }
-
-        mtx_cli.unlock();
     }
-
-    nanosleep((const struct timespec[]){{0, sleepIntervalDaemon}}, NULL);
+    
 }
 
 // ======-------------------------------------------------------------------------------
@@ -219,6 +225,7 @@ void cSLService::process_requests() {
     int32_t msg_size;
     int n, taskId = 0;
     run_req = true;
+    int counter = 0;
 
     syslog(LOG_NOTICE, "Starting thread");
 
@@ -229,6 +236,11 @@ void cSLService::process_requests() {
 
             if(read(connfd, recv_buf, sizeof(int32_t)) == sizeof(int32_t)) {
                 int32_t opcode = int32_t(recv_buf[0]);
+                // bool scheduled = false;
+                // if (0x80000000 & opcode > 0) {
+                //     scheduled = true;
+                // }
+                // opcode = opcode & 0x7FFFFFFF; // Remove first bit
                 syslog(LOG_NOTICE, "Client: %d, opcode: %d", el.first, opcode);
 
                 switch (opcode) {
@@ -238,10 +250,12 @@ void cSLService::process_requests() {
                     syslog(LOG_NOTICE, "Received close connection request, connfd: %d", connfd);
                     close(connfd);
                     syslog(LOG_NOTICE, "Closed connection %d", connfd);
-                    schedulingManager->removeThread(el.second.get());
+                    // schedulingManager->removeThread(el.second.get());
+                    syslog(LOG_NOTICE, "Reconfigurations on %d: %d", vfid, reconfigurations);
+                    syslog(LOG_NOTICE, "Reconfiguration time on %d: %.6fms", vfid, reconfiguration_time);
                     // Removes the thread (calling the destructor)
                     // clients.erase(el.first);
-                    syslog(LOG_NOTICE, "Destroyed client");
+                    // syslog(LOG_NOTICE, "Destroyed client");
                     break;
 
                 // Schedule the task
@@ -260,7 +274,6 @@ void cSLService::process_requests() {
 
                     auto taskIter = task_map.find(opcode);
          
-                    
                     // Read the payload size
                     if(n = read(connfd, recv_buf, sizeof(int32_t)) == sizeof(int32_t)) {
                         memcpy(&msg_size, recv_buf, sizeof(int32_t));
@@ -270,11 +283,17 @@ void cSLService::process_requests() {
                             std::vector<uint64_t> msg(msg_size / sizeof(uint64_t)); 
                             memcpy(msg.data(), recv_buf, msg_size);
                             
-                            syslog(LOG_NOTICE, "Received new request, connfd: %d, msg size: %d",
-                                el.first, msg_size);
+                            // if (scheduled == false)  {
+                            //    // Checking with the scheduler
+                            //    cLib clib("/tmp/coyote-schedManager");
+                            //    clib.task({opcode, {msg}});
+                            //    continue;
+                            // }
+
+                            syslog(LOG_NOTICE, "Received new request, connfd: %d, msg size: %d", el.first, msg_size);
 
                             // Schedule
-                            el.second->scheduleTask(std::unique_ptr<bTask>(new cTask(taskId++, opcode, 1, taskIter->second, msg)));
+                            el.second->scheduleTask(std::unique_ptr<bTask>(new cTask(taskId++, opcode, 1, el.second->cproc->pid, taskIter->second, msg)));
                             syslog(LOG_NOTICE, "Task scheduled, client %d, opcode %d", el.first, opcode);
                         } else {
                             syslog(LOG_ERR, "Request invalid, connfd: %d, received: %d", connfd, n);
@@ -289,6 +308,11 @@ void cSLService::process_requests() {
             }
 
             mtx_cli.unlock();
+        }
+
+        if (counter++ % 10000 == 0) {
+            syslog(LOG_NOTICE, "Reconfigurations on %d: %d", vfid, reconfigurations);
+            syslog(LOG_NOTICE, "Reconfiguration time on %d: %.6fms", vfid, reconfiguration_time);
         }
 
         nanosleep((const struct timespec[]){{0, sleepIntervalRequests}}, NULL);
@@ -324,14 +348,14 @@ void cSLService::process_responses() {
  * @brief Main run service
  * 
  */
-void cSLService::run() {
+thread *cSLService::run() {
 
-    printf("Bitstreams: %lu\n", bstreams.size());
+    // printf("Bitstreams: %lu\n", bstreams.size());
 
     // Init daemon
-    pid_t pid = daemon_init();
-    if (pid > 0)
-        return;
+    // pid_t pid = daemon_init();
+    // if (pid > 0)
+    //     return nullptr;
 
     startRequests();
 
@@ -346,10 +370,14 @@ void cSLService::run() {
     thread_req = std::thread(&cSLService::process_requests, this);
     thread_rsp = std::thread(&cSLService::process_responses, this);
 
+    // Should block here...
+    thread_accept = std::thread(&cSLService::accept_connection, this);
     // Main
-    while(1) {
-        accept_connection();
-    }
+    // while(1) {
+    //     accept_connection();
+    // }
+    // thread_accept.join();
+    return &thread_accept;
 }
 
 }

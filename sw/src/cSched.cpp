@@ -143,7 +143,7 @@ void cSched::processRequests()
             // Obtain vFPGA
             // This fails if a file lock already exists (therefore it would be smart to change the lock type to a file_lock for testing)
 			// Can be ignored in single vFPGA and scheduler testing
-			// plock.lock();
+			plock.lock();
 			// syslog(LOG_NOTICE, "After plock.lock()");
 
             // Check whether reconfiguration is needed
@@ -155,10 +155,10 @@ void cSched::processRequests()
 						syslog(LOG_NOTICE, "Different opcode %d running (Req: %d)", curr_oid, curr_req->oid);
 						if (bstreams.find(curr_req->oid) != bstreams.end()) {
 							// syslog(LOG_NOTICE, "Starting reconfiguration");
+							curr_oid = curr_req->oid;
 							auto bstream = bstreams[curr_req->oid];
 							reconfigure(bstream.first, bstream.second);
                         	recIssued = true;
-							curr_oid = curr_req->oid;
 						} else {
 							syslog(LOG_NOTICE, "Requested bitstream %d not found!", curr_req->oid);
 							plock.unlock();
@@ -174,8 +174,8 @@ void cSched::processRequests()
             // Notify
             curr_cpid = curr_req->cpid;
             syslog(LOG_NOTICE, "Request from: %d", curr_cpid);
-            // lck_complete.unlock();
-            // cv_cmpl.notify_all();
+            lck_complete.unlock();
+            cv_cmpl.notify_all();
 
             // Wait for completion or time out (5 seconds)
             // if(cv_cmpl.wait_for(lck_complete, cmplTimeout, []{return true;})) {
@@ -186,9 +186,12 @@ void cSched::processRequests()
             //    syslog(LOG_NOTICE, "Timeout, flushing ...");
             // }
 
-            // plock.unlock();
+            plock.unlock();
 
         } else {
+			// Signalling the scheduler we are empty
+			// curr_oid = -1;
+			curr_running = 0;
             lck_queue.unlock();
         }
         nanosleep(&PAUSE, NULL);
@@ -205,9 +208,9 @@ void cSched::pLock(int32_t cpid, int32_t oid, uint32_t priority) {
     // auto now = std::chrono::system_clock::now();
 	// syslog(LOG_NOTICE, "Waiting for task to finish");
 	// int ret = 1;
-    // unique_lock<std::mutex> lck_complete(mtx_cmpl);
+    // unique_lock<std::mutex> lck_complete(mtx_cmpl, std::defer_lock);
 	// //  // Waiting for 
-	// // //  ret = cv_cmpl.wait_until(lck_complete, now + 10000ms, [=]{ return cpid == curr_cpid; });
+	//  ret = cv_cmpl.wait_until(lck_complete, now + 10000ms, [=]{ return cpid == curr_cpid; });
 	// cv_cmpl.wait(lck_complete, [=]{ return cpid == curr_cpid; });
 	// while (ret != 1 && curr_oid != oid) {
 	// 	ret = cv_cmpl.wait(lck_complete, [=]{ return cpid == curr_cpid; });
@@ -337,7 +340,7 @@ void cSched::freeMem(void* vaddr)
 void cSched::reconfigure(void *vaddr, uint32_t len) 
 {
 	syslog(LOG_NOTICE, "Reconfiguration called");
-	if(fcnfg.en_pr) {
+	if(true) {
 		uint64_t tmp[2];
 		tmp[0] = reinterpret_cast<uint64_t>(vaddr);
 		tmp[1] = static_cast<uint64_t>(len);
@@ -357,7 +360,9 @@ void cSched::reconfigure(void *vaddr, uint32_t len)
 		// blocking the main thread while not crashing the system
     	
 		std::this_thread::sleep_for(dur);
-		
+		reconfigurations += 1;
+		reconfiguration_time += std::chrono::duration_cast<std::chrono::milliseconds>(dur).count();
+
 		// if(ioctl(fd, IOCTL_RECONFIG_LOAD, &tmp)) { // Blocking
 		// 	syslog(LOG_NOTICE, "Reconfiguration failed!");
 		// 	lck_reconfig.unlock();

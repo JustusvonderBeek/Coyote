@@ -38,6 +38,12 @@ constexpr auto const opIdMinMax = 2;
 constexpr auto const opIdRotate = 3;
 constexpr auto const opIdSelect = 4;
 
+// In seconds
+constexpr auto const addMulDuration = 0.5;
+constexpr auto const minMaxDuration = 1.3;
+constexpr auto const rotateDuration = 2.1;
+constexpr auto const selectDuration = 1.8;
+
 int main(int argc, char *argv[]) 
 {
     // Read arguments
@@ -83,15 +89,17 @@ int main(int argc, char *argv[])
     // This is the only place of interaction needed with Coyote daemon
     // 
     cLib clib(("/tmp/coyote-daemon-vfid-" + to_string(vfid)).c_str());
+    std::uniform_int_distribution<int32_t> possibleOpcodes(opIdAddMul,opIdSelect);
+    int opcodeList[iterations * applications];
 
     auto timeBegin = std::chrono::high_resolution_clock::now();
-    std::uniform_int_distribution<int32_t> possibleOpcodes(opIdAddMul,opIdSelect);
 
     for (uint32_t i = 0; i < iterations; i++)
     {
         for (uint32_t j = 0; j < applications; j++)
         {
             int opcode = possibleOpcodes(rng);
+            opcodeList[(i*applications) + j] = opcode;
             switch (opcode)
             {
             case opIdAddMul:
@@ -119,6 +127,35 @@ int main(int argc, char *argv[])
     printf("Duration: %.5fs\n", dur);
     printf("Iteration(s): %d\n", iterations);
     printf("Application(s): %d\n", applications);
+
+    double sum = 0;
+    for (size_t i = 0; i < iterations * applications; i++)
+    {
+        printf("%d\n", opcodeList[i]);
+        if (i > 0 && i % applications == 0) {
+            printf("--\n");
+        }
+        switch (opcodeList[i])
+        {
+        case opIdAddMul:
+            sum += addMulDuration;
+            break;
+        case opIdRotate:
+            sum += rotateDuration;
+            break;
+        case opIdMinMax:
+            sum += minMaxDuration;
+            break;
+        case opIdSelect:
+            sum += selectDuration;
+            break;
+        default:
+            throw std::runtime_error("Failed to generate a valid opcode! Benchmark run incorrect!");
+        }
+    }
+
+    printf("Application Duration: %.4fs\n", sum);
+    
 
     return (EXIT_SUCCESS);
 }
